@@ -1,7 +1,8 @@
 import { getAuth } from "firebase-admin/auth";
 import createUser from "./src/tests/create-user.html"; 
 import { Hono } from "hono";
-import { notFoundResponse } from "./src/shared/responses/notFoundResponse";
+import { notFoundResponse } from "./src/features/shared/responses/notFoundResponse";
+import { HTTPException } from "hono/http-exception";
 
 
 // Lennin, when in doubt check this repo, is a great example of what to do: https://github.com/DavidHavl/hono-rest-api-starter/blob/main/src/index.ts
@@ -15,9 +16,7 @@ admin.initializeApp({
 
 const app = new Hono()
 
-app.notFound((c) => {
-  return notFoundResponse(c, "Route not found");
-})
+
 
 app.get('/', (c) => {
   return c.text("Hello hono!")
@@ -28,6 +27,21 @@ app.get('/posts/:id', (c) => {
   const id = c.req.param('id')
   c.header('X-Message', 'Hi!')
   return c.text(`You want to see ${page} of ${id}`)
+})
+
+// 404
+app.notFound((c) => {
+  return notFoundResponse(c, "Route not found");
+})
+
+// Error handling 
+app.onError((err, c) => {
+  console.error('app.onError ', err);
+  if (err instanceof HTTPException) {
+    return err.getResponse()
+  }
+
+  return c.json(err, { status: 500 });
 })
 
 
