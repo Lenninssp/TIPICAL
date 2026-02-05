@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "bun run index.ts"
+    "start": "bun run index.ts",
+    "dev": "bun run --hot index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -13,7 +14,10 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@hono/zod-openapi": "^1.2.1",
     "firebase": "^12.8.0",
-    "firebase-admin": "^13.6.1"
+    "firebase-admin": "^13.6.1",
+    "hono": "^4.11.7",
+    "zod": "^4.3.6"
   }
 }
