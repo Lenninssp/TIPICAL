@@ -13,9 +13,9 @@ var serviceAccount = require("./tipical-bd8e7-firebase-adminsdk-fbsvc-b0a76b6eb9
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://tipical-bd8e7-default-rtdb.firebaseio.com/",
 });
-
-
+var db = admin.database();
 const app = new OpenAPIHono<Env>({
   defaultHook: zodErrorMiddleware,
 })
