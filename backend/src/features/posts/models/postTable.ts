@@ -4,12 +4,10 @@ export const PostTable = sqliteTable('posts', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
-  createdAt: integer('createdAt', { mode: 'timestamp' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  editedAt: integer('editedAt', { mode: 'timestamp' })
-    .notNull()
-    .$defaultFn(() => new Date()),
+  createdAt: integer()
+    .notNull(),
+  editedAt: integer()
+    .notNull(),
   ownerId: text('userId').notNull(),
   archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
   latitude: real('latitude'),

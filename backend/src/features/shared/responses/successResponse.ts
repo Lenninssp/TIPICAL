@@ -22,7 +22,7 @@ export const createSuccessResponseSchema = <
       type: z.string().openapi({
         example: entityType,
       }),
-      attributes: entitySchema,
+      attributes: entitySchema.partial(),
       relationships: relationshipSchema ? relationshipSchema.optional() : z.object({}).optional(),
       links: z
         .object({

@@ -10,6 +10,7 @@ import {
 import { NotFoundResponseSchema } from "../../../shared/responses/notFoundResponse";
 import { pickObjectProperties } from "../../../../utils/object";
 import { buildUrlQueryString } from "../../../../utils/url";
+import { getDatabase } from "firebase-admin/database";
 
 const entityType = "posts";
 
@@ -83,54 +84,55 @@ export const route = createRoute({
 export const handler = async (
   c: Context<Env, typeof entityType, RequestValidationTargets>,
 ) => {
-  const { getDatabase } = require("firebase-admin/database");
-  const db = getDatabase();
-  const ref = db.ref("https://tipical-bd8e7-default-rtdb.firebaseio.com");
-  const origin = new URL(c.req.url).origin;
-  const query = c.req.valid('query');
+  const query = c.req.valid("query");
+  const body = c.req.valid("json");
+  
   const user = true;
-  // here I should do the user check
-  if (!user) {
-    return unauthorizedResponse(c, "No user found");
-  }
+  if (!user) return unauthorizedResponse(c, "No user found");
 
-  // Insert into db
+  const origin = new URL(c.req.url).origin;
 
-  const postsRef = ref.child("posts");
-  postsRef.set({
-    post_test: {
-      posts: {
-        post_123: {
-          archived: false,
-          createdAt: 1738944000000,
-          description: "Some text...",
-          editedAt: 1738944000000,
-          image: {
-            contentType: "image/jpeg",
-            path: "posts/post_123/cover.jpg",
-            updatedAt: 1738945000000,
-            url: "https://firebasestorage.googleapis.com/v0/b/...optional...",
-          },
-          location: {
-            lat: 45.5019,
-            lng: -73.5674,
-          },
-          title: "My post title",
-          userId: "user_abc",
-        },
-      },
-    },
-  });
+  const db = getDatabase();
+  const postsRef = db.ref("posts");
+
+  const newRef = postsRef.push();
+  const id = newRef.key!;
+  const now = Date.now();
+
+  const record = {
+    ...body,
+    userId: (body as any).userId ?? "user_abc", 
+    archived: (body as any).archived ?? false,
+    createdAt: now,
+    updatedAt: now,
+    editedAt: now,
+  };
+
+  console.log("aqui inicia!!")
+  await newRef.set(record);
+  console.log("es aqui!!")
+
+
+  const fieldsRaw =
+    typeof (query as any)?.fields === "string" ? String((query).fields) : undefined;
+  const fields = fieldsRaw?.includes(",") ? fieldsRaw.split(",") : fieldsRaw ? [fieldsRaw] : undefined;
+
+  const attributes = fields
+    ? pickObjectProperties({ id, ...record }, fields)
+    : { id, ...record };
 
   return c.json<z.infer<typeof ResponseSchema>, 200>({
     data: {
-      id: postsRef[0].id,
+      id,
       type: entityType,
-      attributes: query?.fields ? pickObjectProperties(postsRef[0], query?.fields.split(',')) : postsRef[0],
+      attributes,
       links: {
-        self: `${origin}/${entityType}/${postsRef[0].id}${buildUrlQueryString(query)}`
-      }
-
-    }
-  })
+        self: `${origin}/${entityType}/${id}${buildUrlQueryString(query)}`,
+      },
+    },
+  });
 };
+
+/**
+curl -d '{"title": "Lennin test", "description": "This is a description" }' -H "Content-Type: application/json" -X POST http://localhost:3000/posts
+ */
