@@ -23,7 +23,7 @@ export const createSuccessResponseSchema = <
         example: entityType,
       }),
       attributes: entitySchema,
-      relationships: relationshipSchema ? relationshipSchema : z.object({}).optional(),
+      relationships: relationshipSchema ? relationshipSchema.optional() : z.object({}).optional(),
       links: z
         .object({
           self: z
@@ -36,8 +36,8 @@ export const createSuccessResponseSchema = <
         })
         .optional(),
     }),
-    meta: metaSchema ? metaSchema : z.object({}).optional(),
-    included: includeSchema ? includeSchema : z.object({}).optional(),
+    meta: metaSchema ? metaSchema.optional() : z.object({}).optional(),
+    included: includeSchema ? includeSchema.optional() : z.object({}).optional(),
   });
 
   
