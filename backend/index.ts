@@ -1,10 +1,14 @@
-import { Hono, type Env } from "hono";
+import { type Env } from "hono";
 import { notFoundResponse } from "./src/features/shared/responses/notFoundResponse";
 import { HTTPException } from "hono/http-exception";
 import { bootstrapFeatures } from "./src/features/bootstrap";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { zodErrorMiddleware } from "./src/middleware/zodErrorMiddleware";
-
+import { logger } from "hono/logger";
+import { secureHeaders } from "hono/secure-headers";
+import { isPathMatch } from "./src/utils/path";
+import { cors } from "hono/cors";
+import { csrf } from "hono/csrf";
 
 // Lennin, when in doubt check this repo, is a great example of what to do: https://github.com/DavidHavl/hono-rest-api-starter/blob/main/src/index.ts
 
@@ -16,27 +20,70 @@ admin.initializeApp({
   databaseURL: "https://tipical-bd8e7-default-rtdb.firebaseio.com/",
 });
 var db = admin.database();
+
 const app = new OpenAPIHono<Env>({
   defaultHook: zodErrorMiddleware,
-})
+});
 
+// MIDDLEWARE //
+app.use(logger());
+
+// Helmet like middleware
+app.use(secureHeaders());
+
+// Content Type Guard - allow JSON:API compliant content type only //
+app.use(async (c, next) => {
+  const excludePaths = ["/"];
+  if (
+    !isPathMatch(c.req.path, excludePaths) &&
+    !["GET", "OPTIONS", "DELETE"].includes(c.req.method) &&
+    c.req.header("Content-Type") !== "application/json"
+  ) {
+    return c.json({ error: "Unsupported media type" }, { status: 415 });
+  }
+  return next();
+});
+
+app.use((c, next) => {
+  const corsMiddleware = cors({
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*" ,
+    allowHeaders: [
+      "Content-Type",
+      "Accept",
+      "X-Auth-Return-Redirect",
+      "X-Custom-Header",
+      "Upgrade-Insecure-Requests",
+    ],
+    allowMethods: ["POST", "GET", "DELETE", "PATCH", "OPTIONS"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+    credentials: true,
+  });
+  return corsMiddleware(c,next)
+});
+
+app.use((c, next) => {
+  const csrfMiddleware = csrf({
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*",
+  })
+  return csrfMiddleware(c, next);
+})
 
 bootstrapFeatures(app);
 
 // 404
 app.notFound((c) => {
   return notFoundResponse(c, "Route not found");
-})
+});
 
-// Error handling 
+// Error handling
 app.onError((err, c) => {
-  console.error('app.onError ', err);
+  console.error("app.onError ", err);
   if (err instanceof HTTPException) {
-    return err.getResponse()
+    return err.getResponse();
   }
 
   return c.json(err, { status: 500 });
-})
-
+});
 
 export default app;
