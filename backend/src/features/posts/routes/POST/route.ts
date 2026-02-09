@@ -108,11 +108,8 @@ export const handler = async (
     editedAt: now,
   };
 
-  console.log("aqui inicia!!")
   await newRef.set(record);
-  console.log("es aqui!!")
-
-
+  
   const fieldsRaw =
     typeof (query as any)?.fields === "string" ? String((query).fields) : undefined;
   const fields = fieldsRaw?.includes(",") ? fieldsRaw.split(",") : fieldsRaw ? [fieldsRaw] : undefined;
