@@ -41,3 +41,31 @@ export const createSuccessResponseSchema = <
   });
 
   
+export const createDeletionSuccessResponseSchema = <M extends ZodRawShape = EmptyZodShape>(
+  entityType: string,
+  metaSchema?: z.ZodObject<M>,
+) =>
+  z.object({
+    data: z.object({
+      id: z.string().openapi({
+        example: '123456789',
+      }),
+      type: z.string().openapi({
+        example: entityType,
+      }),
+      attributes: z.object({
+        id: z.string().openapi({ example: '123456789' }),
+      }),
+      links: z
+        .object({
+          self: z
+            .url()
+            .optional()
+            .openapi({
+              example: `https://api.website.com/${entityType}/123456789`,
+            }),
+        })
+        .optional(),
+    }),
+    meta: metaSchema ? metaSchema.optional() : z.object({}).optional(), // https://jsonapi.org/format/#document-meta
+  });

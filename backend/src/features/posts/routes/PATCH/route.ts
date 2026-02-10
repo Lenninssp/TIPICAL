@@ -112,12 +112,11 @@ export const handler = async (
   // todo: replace for the real user check
   const user = true;
   if (!user) return unauthorizedResponse(c, "No user found");
+  
   const origin = new URL(c.req.url).origin;
   const db = getDatabase();
 
   const postRef = db.ref(`posts/${id}`);
-
-  // here is should fetch for the post that the client wants to update
 
   const snap = await postRef.get();
   if (!snap.exists()) {

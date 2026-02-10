@@ -64,42 +64,12 @@ app.use((c, next) => {
   return corsMiddleware(c, next);
 });
 
-app.use((c, next) => {
-  const csrfMiddleware = csrf({
-    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*",
-  });
-  return csrfMiddleware(c, next);
-});
-
-app.use("/api/*", async (c, next) => {
-  const authHeader = c.req.header("Authorization");
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return c.json({ message: "Unauthorized" }, 401);
-  }
-
-  const idToken = authHeader.split("Bearer ")[1];
-
-  // try {
-  //   const decodedToken = await admin.auth().verifyIdToken(idToken)
-  //   c.set('user', decodedToken)
-  //   await next();
-  // }
-  // ONLY FOR TESTING - DELETE THIS LATER
-  try {
-
-    // Fake a decoded token
-    const decodedToken = { email: "lennin@test.com", uid: "test-123" };
-
-    c.set("user", decodedToken);
-    await next();
-  } catch (error: any) {
-    return c.json({ message: "Invalid Token", error: error.message }, 401);
-  }
-});
-
-// curl -v http://localhost:3000/api/page -H "Content-Type: application/json"
-// curl -v -H "Authorization: Bearer LenninCool" -X POST http://localhost:3000/api/page -H "Content-Type: application/json"
+// app.use((c, next) => {
+//   const csrfMiddleware = csrf({
+//     origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*",
+//   });
+//   return csrfMiddleware(c, next);
+// });
 
 bootstrapFeatures(app);
 
