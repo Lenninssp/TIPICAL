@@ -17,7 +17,7 @@ export const CreatePostSchema = createInsertSchema(PostTable, {
   longitude: true,
 });
 
-export const UpdateTaskSchema = CreatePostSchema.partial();
+export const UpdatePostSchema = CreatePostSchema.partial();
 
 export const PostSchema = z
   .object(SelectPostSchema.shape)
