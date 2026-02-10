@@ -87,6 +87,7 @@ export const handler = async (
   const query = c.req.valid("query");
   const body = c.req.valid("json");
   
+  // todo: replace for the real check
   const user = true;
   if (!user) return unauthorizedResponse(c, "No user found");
 
