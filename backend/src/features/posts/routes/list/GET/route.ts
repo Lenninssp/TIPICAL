@@ -181,16 +181,3 @@ export const handler = async (
     })),
   });
 };
-
-// curl http://localhost:3000/posts
-// curl "http://localhost:3000/posts?limit=10"
-// curl "http://localhost:3000/posts?createdAfter=1738944000000"
-// curl "http://localhost:3000/posts?createdBefore=1739044000000"
-// curl "http://localhost:3000/posts?createdAfter=1738944000000&createdBefore=1739044000000"
-// curl "http://localhost:3000/posts?userId=user_abc"
-// curl "http://localhost:3000/posts?archived=true"
-// curl "http://localhost:3000/posts?archived=false"
-// curl "http://localhost:3000/posts?hasImage=true"
-// curl "http://localhost:3000/posts?hasImage=false"
-// curl "http://localhost:3000/posts?fields=title,createdAt"
-// curl "http://localhost:3000/posts?fields=description"
