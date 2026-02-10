@@ -6,3 +6,13 @@
 //
 
 import Foundation
+import FirebaseFirestore
+
+struct AppUser: Identifiable, Codable {
+    
+    @DocumentID var id: String?
+    let email: String
+    var displayName: String
+    var isActive: Bool = true
+    
+}
