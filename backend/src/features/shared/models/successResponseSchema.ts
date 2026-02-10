@@ -65,23 +65,23 @@ export const CollectionSuccessResponseSchema = z.object({
   ),
   links: z
     .object({
-      self: z.string().url().openapi({
+      self: z.url().openapi({
         example:
           "https://api.website.com/tasks?fields=id,title&sort=-createdAt&filter[isCompleted]=true&page[limit]=10&page[number]=2",
       }),
-      first: z.string().url().openapi({
+      first: z.url().openapi({
         example:
           "https://api.website.com/tasks?fields=id,title&sort=-createdAt&filter[isCompleted]=true&page[limit]=10&page[number]=1",
       }),
-      last: z.string().url().openapi({
+      last: z.url().openapi({
         example:
           "https://api.website.com/tasks?fields=id,title&sort=-createdAt&filter[isCompleted]=true&page[limit]=10&page[number]=12",
       }),
-      prev: z.string().url().openapi({
+      prev: z.url().openapi({
         example:
           "https://api.website.com/tasks?fields=id,title&sort=-createdAt&filter[isCompleted]=true&page[limit]=10&page[number]=1",
       }),
-      next: z.string().url().openapi({
+      next: z.url().openapi({
         example:
           "https://api.website.com/tasks?fields=id,title&sort=-createdAt&filter[isCompleted]=true&page[limit]=10&page[number]=3", // page[cursor]=sdfa
       }),

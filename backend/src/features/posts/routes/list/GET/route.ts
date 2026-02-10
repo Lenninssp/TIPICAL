@@ -12,9 +12,8 @@ import type { Context, Env } from "hono";
 import { getDatabase } from "firebase-admin/database";
 import { pickObjectProperties } from "../../../../../utils/object";
 import { buildUrlQueryString } from "../../../../../utils/url";
-import { createSuccessResponseSchema } from "../../../../shared/responses/successResponse";
 
-const entityType = "posts-lists";
+const entityType = "posts";
 
 const QuerySchema = z.object({
   fields: z
@@ -51,39 +50,24 @@ interface RequestValidationTargets {
   };
 }
 
-const PostAttributesSchema = PostSchema.partial();
-
-const PostResourceSchema = z.object({
-  id: z.string().openapi({ example: "post_123" }),
-  type: z.literal(entityType).openapi({ example: entityType }),
-  attributes: PostAttributesSchema,
-  links: z.object({
-    self: z.string().url().openapi({
-      example: `https://api.website.com/${entityType}/post_123`,
-    }),
-  }),
-});
-
-const ResponseSchema = CollectionSuccessResponseSchema.extend(
+const ResponseSchema = CollectionSuccessResponseSchema.merge(
   z.object({
-    data: z.array(PostResourceSchema),
-    links: z.object({
-      self: z.string().url().openapi({
-        example: `https://api.website.com/${entityType}?limit=20`,
+    data: z.array(
+      z.object({
+        id: z.string().openapi({
+          example: "gy63blmknjbhvg43e2d",
+        }),
+        type: z.string().default(entityType).openapi({
+          example: entityType,
+        }),
+        attributes: PostSchema,
+        links: z.object({
+          self: z.url().openapi({
+            example: `https://api.website.com/${entityType}/thgbw45brtb4rt5676uh`,
+          }),
+        }),
       }),
-      first: z.string().url().openapi({
-        example: `https://api.website.com/${entityType}?limit=20`,
-      }),
-      last: z.string().url().openapi({
-        example: `https://api.website.com/${entityType}?limit=20`,
-      }),
-      prev: z.string().url().openapi({
-        example: `https://api.website.com/${entityType}?limit=20`,
-      }),
-      next: z.string().url().openapi({
-        example: `https://api.website.com/${entityType}?limit=20`,
-      }),
-    }),
+    ),
   }),
 );
 
@@ -144,6 +128,8 @@ export const handler = async (
   const db = getDatabase();
   const postsRef = db.ref("posts");
 
+  const { fields } = query;
+
   let q = postsRef.orderByChild("createdAt");
 
   if (query.createdAfter !== undefined) q = q.startAt(query.createdAfter);
@@ -182,41 +168,16 @@ export const handler = async (
     posts = posts.slice(-query.limit);
   }
 
-  const fieldsRaw =
-    typeof query?.fields === "string" ? String(query.fields) : undefined;
-
-  const fields = fieldsRaw?.includes(",")
-    ? fieldsRaw
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : fieldsRaw
-      ? [fieldsRaw.trim()]
-      : undefined;
-
-
-   const self = `${origin}/${entityType}${buildUrlQueryString(query as any)}`;
+  const self = `${origin}/${entityType}${buildUrlQueryString(query)}`;
 
   return c.json<z.infer<typeof ResponseSchema>, 200>({
-    data: posts.map(({ id, record }) => {
-      const base = { id, ...record };
-      const attributes = fields ? pickObjectProperties(base, fields) : base;
-
-      return {
-        id,
-        type: entityType,
-        attributes,
-        links: {
-          self: `${origin}/${entityType}/${id}`,
-        },
-      };
-    }),
-    links: {
-      self,
-      first: self,
-      last: self,
-      prev: self,
-      next: self,
-    },
+    data: posts.map((post) => ({
+      id: post.id,
+      type: entityType,
+      attributes: fields ? pickObjectProperties(post.record, fields.split(',')) : post.record,
+      links: {
+        self: `${origin}/${entityType}/${post.id}`,
+      },
+    })),
   });
 };
