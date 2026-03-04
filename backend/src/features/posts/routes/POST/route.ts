@@ -1,5 +1,5 @@
 import type { Context, Env } from "hono";
-import { CreatePostSchema, PostSchema } from "../../models/postSchema";
+import { CreatePostSchema, PostSchema } from "../../models/post.schema";
 import { createRoute, z } from "@hono/zod-openapi";
 import { createSuccessResponseSchema } from "../../../shared/responses/successResponse";
 import { InvalidInputResponseSchema } from "../../../shared/responses/invalidInputResponse";

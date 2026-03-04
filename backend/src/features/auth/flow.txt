@@ -1,0 +1,21 @@
+User
+  ↓
+/auth/github
+  ↓
+GitHub OAuth
+  ↓
+/auth/github/callback
+  ↓
+Create session in KV store
+  ↓
+Create JWT containing sessionId
+  ↓
+Store JWT in HTTP-only cookie
+  ↓
+Every request → authGuard
+  ↓
+verify JWT
+  ↓
+load session from KV
+  ↓
+attach session to request context

@@ -3,7 +3,7 @@ import {
   CreatePostSchema,
   PostSchema,
   UpdatePostSchema,
-} from "../../models/postSchema";
+} from "../../models/post.schema";
 import { createSuccessResponseSchema } from "../../../shared/responses/successResponse";
 import { createRoute } from "@hono/zod-openapi";
 import { InvalidInputResponseSchema } from "../../../shared/responses/invalidInputResponse";

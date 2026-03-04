@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "start": "bun run index.ts",
-    "dev": "bun run --hot index.ts"
+    "dev": "bun run --hot index.ts",
+    "build": "bun build ./index.ts --outdir ./dist"
   },
   "devDependencies": {
     "@types/bun": "latest"

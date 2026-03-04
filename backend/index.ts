@@ -8,24 +8,22 @@ import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { isPathMatch } from "./src/utils/path";
 import { cors } from "hono/cors";
-import { csrf } from "hono/csrf";
-import serviceAccount from "./tipical-bd8e7-firebase-adminsdk-fbsvc-b0a76b6eb9.json" with { type: "json" };
+import { firebaseAuthRouter } from "./src/features/auth/endpoints/firebase-login";
+import { authGuard } from "./src/features/auth/auth.guard";
+import { MemorySessionStore } from "./src/features/auth/session.store";
+import { getCurrentUserId } from "./src/features/auth/current-user";
+import { testUiRouter } from "./src/test-ui";
+import { devAuthRouter } from "./src/features/auth/dev/firebase-login";
 
 // Lennin, when in doubt check this repo, is a great example of what to do: https://github.com/DavidHavl/hono-rest-api-starter/blob/main/src/index.ts
 
-var admin = require("firebase-admin");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://tipical-bd8e7-default-rtdb.firebaseio.com/",
-  projectId: process.env.FIREBASE_PROJECT_ID,
-});
-
-var db = admin.database();
+// todo: replace this with the better implementation 
 
 const app = new OpenAPIHono<Env>({
   defaultHook: zodErrorMiddleware,
 });
+const store = new MemorySessionStore();
+
 
 // MIDDLEWARE //
 app.use(logger());
@@ -70,6 +68,16 @@ app.use((c, next) => {
 //   });
 //   return csrfMiddleware(c, next);
 // });
+app.use("/*", authGuard(store, { excludePaths: ["/", "/auth/firebase/login", "/auth/firebase/logout", "/auth/dev/login"]}));
+
+app.route("/", testUiRouter());
+app.route("/auth/firebase", firebaseAuthRouter(store));
+app.route("/auth/dev", devAuthRouter(store));
+
+app.get("/me", (c) => {
+  const userId = getCurrentUserId(c);
+  return c.json({ userId });
+})
 
 bootstrapFeatures(app);
 

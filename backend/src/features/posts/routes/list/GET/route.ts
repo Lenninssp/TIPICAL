@@ -1,5 +1,5 @@
 import z, { record } from "zod";
-import { PostSchema } from "../../../models/postSchema";
+import { PostSchema } from "../../../models/post.schema";
 import { CollectionSuccessResponseSchema } from "../../../../shared/models/successResponseSchema";
 import { createRoute } from "@hono/zod-openapi";
 import { ErrorResponseSchema } from "../../../../shared/models/errorResponseSchema";

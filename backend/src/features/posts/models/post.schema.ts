@@ -1,5 +1,5 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { PostTable } from "./postTable";
+import { PostTable } from "./post.table";
 import z from "zod";
 
 export const SelectPostSchema = createSelectSchema(PostTable);
