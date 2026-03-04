@@ -8,7 +8,6 @@ import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { isPathMatch } from "./src/utils/path";
 import { cors } from "hono/cors";
-import serviceAccount from "./tipical-bd8e7-firebase-adminsdk-fbsvc-b0a76b6eb9.json" with { type: "json" };
 import { firebaseAuthRouter } from "./src/features/auth/endpoints/firebase-login";
 import { authGuard } from "./src/features/auth/auth.guard";
 import { MemorySessionStore } from "./src/features/auth/session.store";
@@ -19,15 +18,6 @@ import { devAuthRouter } from "./src/features/auth/dev/firebase-login";
 // Lennin, when in doubt check this repo, is a great example of what to do: https://github.com/DavidHavl/hono-rest-api-starter/blob/main/src/index.ts
 
 // todo: replace this with the better implementation 
-var admin = require("firebase-admin");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://tipical-bd8e7-default-rtdb.firebaseio.com/",
-  projectId: process.env.FIREBASE_PROJECT_ID,
-});
-
-var db = admin.database();
 
 const app = new OpenAPIHono<Env>({
   defaultHook: zodErrorMiddleware,
