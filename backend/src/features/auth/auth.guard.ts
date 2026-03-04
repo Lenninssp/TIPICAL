@@ -2,7 +2,6 @@ import type { Context, MiddlewareHandler } from "hono";
 import type { SessionStore } from "./session.store";
 import { getCookie } from "hono/cookie";
 import {verify} from "hono/jwt"
-import {} from ""
 import type { JWTPayload } from "hono/utils/jwt/types";
 import { deleteSession, getSessionId } from "./session";
 

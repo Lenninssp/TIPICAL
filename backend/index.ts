@@ -13,6 +13,8 @@ import { firebaseAuthRouter } from "./src/features/auth/endpoints/firebase-login
 import { authGuard } from "./src/features/auth/auth.guard";
 import { MemorySessionStore } from "./src/features/auth/session.store";
 import { getCurrentUserId } from "./src/features/auth/current-user";
+import { testUiRouter } from "./src/test-ui";
+import { devAuthRouter } from "./src/features/auth/dev/firebase-login";
 
 // Lennin, when in doubt check this repo, is a great example of what to do: https://github.com/DavidHavl/hono-rest-api-starter/blob/main/src/index.ts
 
@@ -76,9 +78,11 @@ app.use((c, next) => {
 //   });
 //   return csrfMiddleware(c, next);
 // });
-app.route("/auth/firebase", firebaseAuthRouter(store));
+app.use("/*", authGuard(store, { excludePaths: ["/", "/auth/firebase/login", "/auth/firebase/logout", "/auth/dev/login"]}));
 
-app.use("/*", authGuard(store, { excludePaths: ["/", "/auth/firebase/login", "/auth/firebase/logout"]}));
+app.route("/", testUiRouter());
+app.route("/auth/firebase", firebaseAuthRouter(store));
+app.route("/auth/dev", devAuthRouter(store));
 
 app.get("/me", (c) => {
   const userId = getCurrentUserId(c);
