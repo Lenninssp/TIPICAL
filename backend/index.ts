@@ -8,8 +8,11 @@ import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { isPathMatch } from "./src/utils/path";
 import { cors } from "hono/cors";
-import { csrf } from "hono/csrf";
 import serviceAccount from "./tipical-bd8e7-firebase-adminsdk-fbsvc-b0a76b6eb9.json" with { type: "json" };
+import { firebaseAuthRouter } from "./src/features/auth/endpoints/firebase-login";
+import { authGuard } from "./src/features/auth/auth.guard";
+import { MemorySessionStore } from "./src/features/auth/session.store";
+import { getCurrentUserId } from "./src/features/auth/current-user";
 
 // Lennin, when in doubt check this repo, is a great example of what to do: https://github.com/DavidHavl/hono-rest-api-starter/blob/main/src/index.ts
 
@@ -27,6 +30,8 @@ var db = admin.database();
 const app = new OpenAPIHono<Env>({
   defaultHook: zodErrorMiddleware,
 });
+const store = new MemorySessionStore();
+
 
 // MIDDLEWARE //
 app.use(logger());
@@ -71,6 +76,14 @@ app.use((c, next) => {
 //   });
 //   return csrfMiddleware(c, next);
 // });
+app.route("/auth/firebase", firebaseAuthRouter(store));
+
+app.use("/*", authGuard(store, { excludePaths: ["/", "/auth/firebase/login", "/auth/firebase/logout"]}));
+
+app.get("/me", (c) => {
+  const userId = getCurrentUserId(c);
+  return c.json({ userId });
+})
 
 bootstrapFeatures(app);
 

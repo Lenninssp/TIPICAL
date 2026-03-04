@@ -70,4 +70,6 @@ export function firebaseAuthRouter(store: SessionStore) {
 
       return c.json({ ok: true });
   })
+
+  return app;
 }
