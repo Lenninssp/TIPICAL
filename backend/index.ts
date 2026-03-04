@@ -13,6 +13,7 @@ import serviceAccount from "./tipical-bd8e7-firebase-adminsdk-fbsvc-b0a76b6eb9.j
 
 // Lennin, when in doubt check this repo, is a great example of what to do: https://github.com/DavidHavl/hono-rest-api-starter/blob/main/src/index.ts
 
+// todo: replace this with the better implementation 
 var admin = require("firebase-admin");
 
 admin.initializeApp({
