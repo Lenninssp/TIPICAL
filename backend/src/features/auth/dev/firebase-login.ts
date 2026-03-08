@@ -74,13 +74,13 @@ export function devAuthRouter(store: SessionStore) {
     const jwt = await sign({ sessionId: session.id }, secret);
 
     console.log(`[dev-auth] Session created: ${session.id}, expires at: ${expiresAt.toISOString()}`);
-
+    const env = process.env.ENVIRONMENT ?? "development";
     const cookieName = "session";
     setCookie(c, cookieName, jwt, {
       path: "/",
       httpOnly: true,
       secure: false,
-      sameSite: "Lax",
+      sameSite: env === "production" ? "None" : "Lax",
       expires: expiresAt,
     });
 

@@ -85,14 +85,14 @@ export function firebaseAuthRouter(store: SessionStore) {
 
     const env = process.env.ENVIRONMENT ?? "development";
     const cookieName = process.env.AUTH_COOKIE_NAME ?? (env === "production" ? "__Secure-session" : "session");
-    
+
     setCookie(c, cookieName, jwt, {
       path: "/",
       httpOnly: true,
       secure: env === "production",
-      sameSite: "Lax",
+      sameSite: env === "production" ? "None" : "Lax",
       expires: expiresAt,
-    })
+    });
 
     return c.json({ ok: true });
   });
@@ -101,7 +101,7 @@ export function firebaseAuthRouter(store: SessionStore) {
     const env = process.env.ENVIRONMENT ?? "development";
     const cookieName = 
       process.env.AUTH_COOKIE_NAME ??
-      (env === "production" ? "__Secure_session" : "session");
+      (env === "production" ? "__Secure-session" : "session");
 
       deleteCookie(c, cookieName, { path: "/"});
 
