@@ -14,16 +14,24 @@ import { MemorySessionStore } from "./src/features/auth/session.store";
 import { getCurrentUserId } from "./src/features/auth/current-user";
 import { testUiRouter } from "./src/test-ui";
 import { devAuthRouter } from "./src/features/auth/dev/firebase-login";
+import serviceAccount from "./tipical-bd8e7-firebase-adminsdk-fbsvc-b0a76b6eb9.json" with { type: "json" };
 
 // Lennin, when in doubt check this repo, is a great example of what to do: https://github.com/DavidHavl/hono-rest-api-starter/blob/main/src/index.ts
 
-// todo: replace this with the better implementation 
+// todo: replace this with the better implementation
+
+var admin = require("firebase-admin");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://tipical-bd8e7-default-rtdb.firebaseio.com/",
+  projectId: process.env.FIREBASE_PROJECT_ID,
+});
 
 const app = new OpenAPIHono<Env>({
   defaultHook: zodErrorMiddleware,
 });
 const store = new MemorySessionStore();
-
 
 // MIDDLEWARE //
 app.use(logger());
@@ -46,7 +54,7 @@ app.use(async (c, next) => {
 
 app.use((c, next) => {
   const corsMiddleware = cors({
-    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*",
+    origin: ["http://localhost:3001", "http://localhost:3000", "https://lenninsabogal.online"],
     allowHeaders: [
       "Content-Type",
       "Accept",
@@ -68,7 +76,17 @@ app.use((c, next) => {
 //   });
 //   return csrfMiddleware(c, next);
 // });
-app.use("/*", authGuard(store, { excludePaths: ["/", "/auth/firebase/login", "/auth/firebase/logout", "/auth/dev/login"]}));
+app.use(
+  "/*",
+  authGuard(store, {
+    excludePaths: [
+      "/",
+      "/auth/firebase/login",
+      "/auth/firebase/logout",
+      "/auth/dev/login",
+    ],
+  }),
+);
 
 app.route("/", testUiRouter());
 app.route("/auth/firebase", firebaseAuthRouter(store));
@@ -77,7 +95,7 @@ app.route("/auth/dev", devAuthRouter(store));
 app.get("/me", (c) => {
   const userId = getCurrentUserId(c);
   return c.json({ userId });
-})
+});
 
 bootstrapFeatures(app);
 
