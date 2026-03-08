@@ -16,16 +16,19 @@ import { getCurrentUser } from "../../auth/current-user";
 import { getDatabase } from "firebase-admin/database";
 import { pickObjectProperties } from "../../../utils/object";
 
-const entityType = "users";
+const entityType = "profiles";
 
 const ParamsSchema = z.object({
-  id: z.string().min(1).openapi({
-    param: {
-      name: "id",
-      in: "path",
-    },
-    example: "me",
-  }),
+  id: z
+    .string()
+    .min(1)
+    .openapi({
+      param: {
+        name: "id",
+        in: "path",
+      },
+      example: "me",
+    }),
 });
 
 const QuerySchema = z.object({
@@ -67,7 +70,7 @@ export const route = createRoute({
     params: ParamsSchema,
     query: QuerySchema,
   },
-  description: `Retrieve a single user by ID. Use "me" to retrieve the current user.`,
+  description: `Retrieve a single profile by ID. Use "me" to retrieve the current user's profile.`,
   responses: {
     200: {
       content: {
@@ -123,21 +126,24 @@ export const handler = async (
     return unauthorizedResponse(c);
   }
 
-  const userSnap = await db.ref(entityType).child(requestedId).get();
+  const profileSnap = await db.ref(entityType).child(requestedId).get();
 
-  if (!userSnap.exists()) {
+  if (!profileSnap.exists()) {
     return notFoundResponse(c);
   }
 
-  const userRecord = userSnap.val();
+  const profileRecord = profileSnap.val();
 
   return c.json<z.infer<typeof ResponseSchema>, 200>({
     data: {
       id: requestedId,
       type: entityType,
       attributes: query.fields
-        ? pickObjectProperties(userRecord, query.fields.split(","))
-        : userRecord,
+        ? pickObjectProperties(
+            profileRecord,
+            query.fields.split(",").map((field) => field.trim()),
+          )
+        : profileRecord,
       links: {
         self: `${origin}/${entityType}/${requestedId}`,
       },
