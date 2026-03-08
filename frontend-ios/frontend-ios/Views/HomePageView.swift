@@ -13,7 +13,12 @@ struct HomePageView: View {
     var body: some View {
         
             VStack {
-                Text("TIPICAL")
+                HStack{
+                    Image(.logo)
+                    Text("TIPICAL")
+  
+                }
+                
 
                 Form {
                     Button(role: .destructive) {
