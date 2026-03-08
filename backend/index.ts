@@ -54,10 +54,15 @@ app.use(async (c, next) => {
 
 app.use((c, next) => {
   const corsMiddleware = cors({
-    origin: ["http://localhost:3001", "http://localhost:3000", "https://lenninsabogal.online"],
+    origin: [
+      "http://localhost:3001",
+      "http://localhost:3000",
+      "https://lenninsabogal.online",
+    ],
     allowHeaders: [
       "Content-Type",
       "Accept",
+      "Authorization",
       "X-Auth-Return-Redirect",
       "X-Custom-Header",
       "Upgrade-Insecure-Requests",
@@ -89,8 +94,7 @@ app.use(
 );
 
 app.route("/auth/firebase", firebaseAuthRouter(store));
-app.route("/auth/dev", devAuthRouter(store));
-
+app.route("/auth/dev", devAuthRouter());
 app.get("/me", (c) => {
   const userId = getCurrentUserId(c);
   return c.json({ userId });

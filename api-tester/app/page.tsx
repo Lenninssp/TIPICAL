@@ -1,12 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
 export default function Home() {
   const [link, setLink] = useState(API);
   const [output, setOutput] = useState<any>("");
+  const [firebaseEmail, setFirebaseEmail] = useState("");
+  const [firebasePassword, setFirebasePassword] = useState("");
+  const [devBearerToken, setDevBearerToken] = useState("");
 
   const [postId, setPostId] = useState("");
   const [profileFields, setProfileFields] = useState("");
@@ -53,26 +58,67 @@ export default function Home() {
     setOutput(data);
   }
 
-  async function runRequest(url: string, options?: RequestInit) {
-    setLink(url);
+  async function firebaseLogin() {
     try {
-      const res = await fetch(url, {
-        credentials: "include",
-        ...options,
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        firebaseEmail,
+        firebasePassword,
+      );
+
+      const idToken = await credential.user.getIdToken();
+
+      await runRequest(`${API}/auth/firebase/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
       });
-      await handleResponse(res);
     } catch (err: any) {
-      setOutput(err?.message ?? "Unknown error");
+      setOutput(err?.message ?? "Firebase login failed");
     }
   }
 
-  async function devLogin() {
-    await runRequest(`${API}/auth/dev/login`, {
+async function runRequest(url: string, options?: RequestInit) {
+  setLink(url);
+
+  try {
+    const headers = new Headers(options?.headers ?? {});
+
+    if (devBearerToken) {
+      headers.set("Authorization", `Bearer ${devBearerToken}`);
+    }
+
+    const res = await fetch(url, {
+      credentials: "include",
+      ...options,
+      headers,
+    });
+
+    await handleResponse(res);
+  } catch (err: any) {
+    setOutput(err?.message ?? "Unknown error");
+  }
+}
+
+async function devLogin() {
+  setLink(`${API}/auth/dev/login`);
+  try {
+    const res = await fetch(`${API}/auth/dev/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId: "test-user-123" }),
     });
+
+    const data = await res.json().catch(() => res.text());
+    setOutput(data);
+
+    if (data?.token) {
+      setDevBearerToken(data.token);
+    }
+  } catch (err: any) {
+    setOutput(err?.message ?? "Unknown error");
   }
+}
 
   async function me() {
     await runRequest(`${API}/me`);
@@ -181,14 +227,20 @@ export default function Home() {
     });
   }
 
-  async function logout() {
-    await runRequest(`${API}/auth/firebase/logout`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-  }
+async function logout() {
+  setDevBearerToken("");
+
+  try {
+    await signOut(auth);
+  } catch {}
+
+  await runRequest(`${API}/auth/firebase/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
 
   async function getComments() {
     const params = new URLSearchParams();
@@ -293,7 +345,44 @@ export default function Home() {
       </h1>
 
       {sectionStyle("Auth / Session")}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <div style={cardStyle}>
+        <div style={grid2Style}>
+          <input
+            placeholder="Firebase email"
+            value={firebaseEmail}
+            onChange={(e) => setFirebaseEmail(e.target.value)}
+            style={inputStyle}
+          />
+          <input
+            placeholder="Firebase password"
+            type="password"
+            value={firebasePassword}
+            onChange={(e) => setFirebasePassword(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={firebaseLogin}
+          >
+            Firebase Login
+          </button>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={me}
+          >
+            GET /me
+          </button>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={logout}
+          >
+            Logout
+          </button>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button
           className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
           onClick={devLogin}
@@ -312,6 +401,7 @@ export default function Home() {
         >
           Logout
         </button>
+      </div>
       </div>
 
       {sectionStyle("Profile")}
