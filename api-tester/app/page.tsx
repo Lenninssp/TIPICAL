@@ -10,6 +10,19 @@ export default function Home() {
 
   const [postId, setPostId] = useState("");
   const [profileFields, setProfileFields] = useState("");
+  const [commentId, setCommentId] = useState("");
+  const [commentFields, setCommentFields] = useState("");
+  const [commentPostIdFilter, setCommentPostIdFilter] = useState("");
+
+  const [createCommentForm, setCreateCommentForm] = useState({
+    postId: "",
+    comment: "",
+  });
+
+  const [patchCommentForm, setPatchCommentForm] = useState({
+    comment: "",
+    hidden: "",
+  });
 
   const [createPostForm, setCreatePostForm] = useState({
     title: "Next test",
@@ -40,10 +53,7 @@ export default function Home() {
     setOutput(data);
   }
 
-  async function runRequest(
-    url: string,
-    options?: RequestInit,
-  ) {
+  async function runRequest(url: string, options?: RequestInit) {
     setLink(url);
     try {
       const res = await fetch(url, {
@@ -79,11 +89,16 @@ export default function Home() {
   async function patchProfile() {
     const body: Record<string, any> = {};
 
-    if (patchProfileForm.firstName.trim()) body.firstName = patchProfileForm.firstName.trim();
-    if (patchProfileForm.lastName.trim()) body.lastName = patchProfileForm.lastName.trim();
-    if (patchProfileForm.username.trim()) body.username = patchProfileForm.username.trim();
-    if (patchProfileForm.description.trim()) body.description = patchProfileForm.description.trim();
-    if (patchProfileForm.profilePicture.trim()) body.profilePicture = patchProfileForm.profilePicture.trim();
+    if (patchProfileForm.firstName.trim())
+      body.firstName = patchProfileForm.firstName.trim();
+    if (patchProfileForm.lastName.trim())
+      body.lastName = patchProfileForm.lastName.trim();
+    if (patchProfileForm.username.trim())
+      body.username = patchProfileForm.username.trim();
+    if (patchProfileForm.description.trim())
+      body.description = patchProfileForm.description.trim();
+    if (patchProfileForm.profilePicture.trim())
+      body.profilePicture = patchProfileForm.profilePicture.trim();
 
     if (patchProfileForm.birthDate.trim()) {
       const parsed = Number(patchProfileForm.birthDate);
@@ -136,7 +151,8 @@ export default function Home() {
     const body: Record<string, any> = {};
 
     if (patchPostForm.title.trim()) body.title = patchPostForm.title.trim();
-    if (patchPostForm.description.trim()) body.description = patchPostForm.description.trim();
+    if (patchPostForm.description.trim())
+      body.description = patchPostForm.description.trim();
 
     if (patchPostForm.archived === "true") body.archived = true;
     if (patchPostForm.archived === "false") body.archived = false;
@@ -174,41 +190,150 @@ export default function Home() {
     });
   }
 
+  async function getComments() {
+    const params = new URLSearchParams();
+
+    if (commentPostIdFilter.trim()) {
+      params.set("postId", commentPostIdFilter.trim());
+    }
+
+    if (commentFields.trim()) {
+      params.set("fields", commentFields.trim());
+    }
+
+    const query = params.toString() ? `?${params.toString()}` : "";
+    await runRequest(`${API}/comments${query}`);
+  }
+
+  async function getCommentById() {
+    if (!commentId.trim()) {
+      setOutput("Missing commentId");
+      return;
+    }
+
+    const query = commentFields.trim()
+      ? `?fields=${encodeURIComponent(commentFields.trim())}`
+      : "";
+
+    await runRequest(`${API}/comments/${commentId.trim()}${query}`);
+  }
+
+  async function createComment() {
+    const body: Record<string, any> = {
+      postId: createCommentForm.postId.trim(),
+      comment: createCommentForm.comment.trim(),
+    };
+
+    await runRequest(`${API}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async function patchComment() {
+    if (!commentId.trim()) {
+      setOutput("Missing commentId");
+      return;
+    }
+
+    const body: Record<string, any> = {};
+
+    if (patchCommentForm.comment.trim()) {
+      body.comment = patchCommentForm.comment.trim();
+    }
+
+    if (patchCommentForm.hidden === "true") body.hidden = true;
+    if (patchCommentForm.hidden === "false") body.hidden = false;
+
+    await runRequest(`${API}/comments/${commentId.trim()}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async function deleteComment() {
+    if (!commentId.trim()) {
+      setOutput("Missing commentId");
+      return;
+    }
+
+    await runRequest(`${API}/comments/${commentId.trim()}`, {
+      method: "DELETE",
+    });
+  }
+
   function sectionStyle(title: string) {
     return (
-      <h2 style={{ fontSize: 18, fontWeight: 800, marginTop: 24, marginBottom: 12 }}>
+      <h2
+        style={{
+          fontSize: 18,
+          fontWeight: 800,
+          marginTop: 24,
+          marginBottom: 12,
+        }}
+      >
         {title}
       </h2>
     );
   }
 
   return (
-    <div style={{ padding: 40, fontFamily: "monospace", maxWidth: 1100, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 20 }}>API TESTER</h1>
+    <div
+      style={{
+        padding: 40,
+        fontFamily: "monospace",
+        maxWidth: 1100,
+        margin: "0 auto",
+      }}
+    >
+      <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 20 }}>
+        API TESTER
+      </h1>
 
       {sectionStyle("Auth / Session")}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black" onClick={devLogin}>
+        <button
+          className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+          onClick={devLogin}
+        >
           Dev Login
         </button>
-        <button className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black" onClick={me}>
+        <button
+          className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+          onClick={me}
+        >
           GET /me
         </button>
-        <button className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black" onClick={logout}>
+        <button
+          className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+          onClick={logout}
+        >
           Logout
         </button>
       </div>
 
       {sectionStyle("Profile")}
       <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <input
             placeholder="fields=email,username,firstName"
             value={profileFields}
             onChange={(e) => setProfileFields(e.target.value)}
             style={inputStyle}
           />
-          <button className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black" onClick={getProfile}>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={getProfile}
+          >
             GET /profiles/me
           </button>
         </div>
@@ -219,7 +344,10 @@ export default function Home() {
               placeholder="firstName"
               value={patchProfileForm.firstName}
               onChange={(e) =>
-                setPatchProfileForm((prev) => ({ ...prev, firstName: e.target.value }))
+                setPatchProfileForm((prev) => ({
+                  ...prev,
+                  firstName: e.target.value,
+                }))
               }
               style={inputStyle}
             />
@@ -227,7 +355,10 @@ export default function Home() {
               placeholder="lastName"
               value={patchProfileForm.lastName}
               onChange={(e) =>
-                setPatchProfileForm((prev) => ({ ...prev, lastName: e.target.value }))
+                setPatchProfileForm((prev) => ({
+                  ...prev,
+                  lastName: e.target.value,
+                }))
               }
               style={inputStyle}
             />
@@ -235,7 +366,10 @@ export default function Home() {
               placeholder="username"
               value={patchProfileForm.username}
               onChange={(e) =>
-                setPatchProfileForm((prev) => ({ ...prev, username: e.target.value }))
+                setPatchProfileForm((prev) => ({
+                  ...prev,
+                  username: e.target.value,
+                }))
               }
               style={inputStyle}
             />
@@ -243,7 +377,10 @@ export default function Home() {
               placeholder="birthDate (timestamp)"
               value={patchProfileForm.birthDate}
               onChange={(e) =>
-                setPatchProfileForm((prev) => ({ ...prev, birthDate: e.target.value }))
+                setPatchProfileForm((prev) => ({
+                  ...prev,
+                  birthDate: e.target.value,
+                }))
               }
               style={inputStyle}
             />
@@ -251,7 +388,10 @@ export default function Home() {
               placeholder="profilePicture URL"
               value={patchProfileForm.profilePicture}
               onChange={(e) =>
-                setPatchProfileForm((prev) => ({ ...prev, profilePicture: e.target.value }))
+                setPatchProfileForm((prev) => ({
+                  ...prev,
+                  profilePicture: e.target.value,
+                }))
               }
               style={inputStyle}
             />
@@ -259,13 +399,19 @@ export default function Home() {
               placeholder="description"
               value={patchProfileForm.description}
               onChange={(e) =>
-                setPatchProfileForm((prev) => ({ ...prev, description: e.target.value }))
+                setPatchProfileForm((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
               }
               style={inputStyle}
             />
           </div>
 
-          <button className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black" onClick={patchProfile}>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={patchProfile}
+          >
             PATCH /profiles/me
           </button>
         </div>
@@ -286,7 +432,10 @@ export default function Home() {
             placeholder="description"
             value={createPostForm.description}
             onChange={(e) =>
-              setCreatePostForm((prev) => ({ ...prev, description: e.target.value }))
+              setCreatePostForm((prev) => ({
+                ...prev,
+                description: e.target.value,
+              }))
             }
             style={inputStyle}
           />
@@ -302,7 +451,10 @@ export default function Home() {
             placeholder="image url (optional)"
             value={createPostForm.imageUrl}
             onChange={(e) =>
-              setCreatePostForm((prev) => ({ ...prev, imageUrl: e.target.value }))
+              setCreatePostForm((prev) => ({
+                ...prev,
+                imageUrl: e.target.value,
+              }))
             }
             style={inputStyle}
           />
@@ -313,17 +465,26 @@ export default function Home() {
             type="checkbox"
             checked={createPostForm.archived}
             onChange={(e) =>
-              setCreatePostForm((prev) => ({ ...prev, archived: e.target.checked }))
+              setCreatePostForm((prev) => ({
+                ...prev,
+                archived: e.target.checked,
+              }))
             }
           />
           archived
         </label>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black" onClick={getPosts}>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={getPosts}
+          >
             GET /posts
           </button>
-          <button className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black" onClick={createPost}>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={createPost}
+          >
             POST /posts
           </button>
         </div>
@@ -351,7 +512,10 @@ export default function Home() {
             placeholder="new description"
             value={patchPostForm.description}
             onChange={(e) =>
-              setPatchPostForm((prev) => ({ ...prev, description: e.target.value }))
+              setPatchPostForm((prev) => ({
+                ...prev,
+                description: e.target.value,
+              }))
             }
             style={inputStyle}
           />
@@ -359,7 +523,10 @@ export default function Home() {
             placeholder='archived: "true" or "false"'
             value={patchPostForm.archived}
             onChange={(e) =>
-              setPatchPostForm((prev) => ({ ...prev, archived: e.target.value }))
+              setPatchPostForm((prev) => ({
+                ...prev,
+                archived: e.target.value,
+              }))
             }
             style={inputStyle}
           />
@@ -367,19 +534,152 @@ export default function Home() {
             placeholder="new image url"
             value={patchPostForm.imageUrl}
             onChange={(e) =>
-              setPatchPostForm((prev) => ({ ...prev, imageUrl: e.target.value }))
+              setPatchPostForm((prev) => ({
+                ...prev,
+                imageUrl: e.target.value,
+              }))
             }
             style={inputStyle}
           />
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black" onClick={patchPost}>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={patchPost}
+          >
             PATCH /posts/:id
           </button>
-          <button className="cursor-pointer bg-red-300 rounded-xl p-3 font-black text-black" onClick={deletePost}>
+          <button
+            className="cursor-pointer bg-red-300 rounded-xl p-3 font-black text-black"
+            onClick={deletePost}
+          >
             DELETE /posts/:id
           </button>
+        </div>
+      </div>
+
+      {sectionStyle("Comments")}
+      <div style={{ display: "grid", gap: 12 }}>
+        <div style={cardStyle}>
+          <div style={grid2Style}>
+            <input
+              placeholder="filter by postId"
+              value={commentPostIdFilter}
+              onChange={(e) => setCommentPostIdFilter(e.target.value)}
+              style={inputStyle}
+            />
+            <input
+              placeholder="fields=comment,creationDate,userId"
+              value={commentFields}
+              onChange={(e) => setCommentFields(e.target.value)}
+              style={inputStyle}
+            />
+            <input
+              placeholder="comment id"
+              value={commentId}
+              onChange={(e) => setCommentId(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+              onClick={getComments}
+            >
+              GET /comments
+            </button>
+            <button
+              className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+              onClick={getCommentById}
+            >
+              GET /comments/:id
+            </button>
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <div style={grid2Style}>
+            <input
+              placeholder="postId"
+              value={createCommentForm.postId}
+              onChange={(e) =>
+                setCreateCommentForm((prev) => ({
+                  ...prev,
+                  postId: e.target.value,
+                }))
+              }
+              style={inputStyle}
+            />
+            <input
+              placeholder="comment"
+              value={createCommentForm.comment}
+              onChange={(e) =>
+                setCreateCommentForm((prev) => ({
+                  ...prev,
+                  comment: e.target.value,
+                }))
+              }
+              style={inputStyle}
+            />
+          </div>
+
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={createComment}
+          >
+            POST /comments
+          </button>
+        </div>
+
+        <div style={cardStyle}>
+          <input
+            placeholder="comment id"
+            value={commentId}
+            onChange={(e) => setCommentId(e.target.value)}
+            style={inputStyle}
+          />
+
+          <div style={grid2Style}>
+            <input
+              placeholder="new comment"
+              value={patchCommentForm.comment}
+              onChange={(e) =>
+                setPatchCommentForm((prev) => ({
+                  ...prev,
+                  comment: e.target.value,
+                }))
+              }
+              style={inputStyle}
+            />
+            <input
+              placeholder='hidden: "true" or "false"'
+              value={patchCommentForm.hidden}
+              onChange={(e) =>
+                setPatchCommentForm((prev) => ({
+                  ...prev,
+                  hidden: e.target.value,
+                }))
+              }
+              style={inputStyle}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+              onClick={patchComment}
+            >
+              PATCH /comments/:id
+            </button>
+            <button
+              className="cursor-pointer bg-red-300 rounded-xl p-3 font-black text-black"
+              onClick={deleteComment}
+            >
+              DELETE /comments/:id
+            </button>
+          </div>
         </div>
       </div>
 
