@@ -88,7 +88,6 @@ app.use(
   }),
 );
 
-app.route("/", testUiRouter());
 app.route("/auth/firebase", firebaseAuthRouter(store));
 app.route("/auth/dev", devAuthRouter(store));
 
