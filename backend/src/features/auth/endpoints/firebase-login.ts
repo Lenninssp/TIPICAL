@@ -5,6 +5,7 @@ import { getFirebaseAuth } from "../../shared/lib/firebase-admin";
 import { createSession } from "../session";
 import { sign } from "hono/jwt";
 import { deleteCookie, setCookie } from "hono/cookie";
+import { getDatabase } from "firebase-admin/database";
 
 const BodySchema = z.object({
   idToken: z.string().min(1)
@@ -30,12 +31,48 @@ export function firebaseAuthRouter(store: SessionStore) {
       return c.json({ error: "Invalid Firebase token" }, 401);
     }
 
-    // possible later, to add email verification to the app
-    // if (!decoded.email || decoded.email_verified !== true) {
-    //   return c.json({ error: "Email not verified"}, 401);
-    // }
+     const userId = decoded.uid;
+    const email = decoded.email ?? null;
+    const profilePicture = decoded.picture ?? null;
+    const username =
+      decoded.name ??
+      (email ? email.split("@")[0] : "user");
 
-    const userId = decoded.uid;
+    const db = getDatabase();
+    const profileRef = db.ref("profiles").child(userId);
+    const profileSnap = await profileRef.get();
+
+    const now = Date.now();
+
+    if (profileSnap.exists()) {
+      const existingProfile = profileSnap.val();
+
+      await profileRef.update({
+        id: userId,
+        email,
+        username,
+        profilePicture,
+        lastLoginDate: now,
+        firstName: existingProfile.firstName ?? "",
+        lastName: existingProfile.lastName ?? "",
+        description: existingProfile.description ?? "",
+        birthDate: existingProfile.birthDate ?? null,
+        creationDate: existingProfile.creationDate ?? now,
+      });
+    } else {
+      await profileRef.set({
+        id: userId,
+        email,
+        username,
+        firstName: "",
+        lastName: "",
+        description: "",
+        birthDate: null,
+        profilePicture,
+        creationDate: now,
+        lastLoginDate: now,
+      });
+    }
 
     const expirationMs = Number(process.env.AUTH_SESSION_EXPIRATION_MS ?? "86400000");
     const expiresAt = new Date(Date.now() + expirationMs);
