@@ -110,29 +110,46 @@ export const route = createRoute({
 export const handler = async (
   c: Context<Env, typeof entityType, RequestValidationTargets>,
 ) => {
+    console.log("[profiles/me] handler start");
+
   const db = getDatabase();
   const origin = new URL(c.req.url).origin;
   const params = c.req.valid("param");
   const query = c.req.valid("query");
 
+
+  console.log("[profiles/me] params", params);
+  console.log("[profiles/me] query", query);
   const currentUser = await getCurrentUser(c);
+    console.log("[profiles/me] currentUser", currentUser);
+
   if (!currentUser) {
+        console.log("[profiles/me] unauthorized");
+
     return unauthorizedResponse(c);
   }
 
   const requestedId = params.id === "me" ? currentUser.id : params.id;
+    console.log("[profiles/me] requestedId", requestedId);
+
 
   if (requestedId !== currentUser.id) {
+        console.log("[profiles/me] forbidden");
+
     return unauthorizedResponse(c);
   }
 
   const profileSnap = await db.ref(entityType).child(requestedId).get();
+    console.log("[profiles/me] profileSnap.exists()", profileSnap.exists());
+
 
   if (!profileSnap.exists()) {
     return notFoundResponse(c);
   }
 
   const profileRecord = profileSnap.val();
+    console.log("[profiles/me] profileRecord", profileRecord);
+
 
   return c.json<z.infer<typeof ResponseSchema>, 200>({
     data: {
