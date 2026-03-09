@@ -10,6 +10,7 @@ import SwiftUI
 struct ProfileView: View {
     @State private var showSideMenu = false
     
+    //sample data borrar
     let posts: [Post] = [
         Post(
             userId: "user_1",
@@ -56,7 +57,7 @@ struct ProfileView: View {
         ZStack(alignment: .trailing) {
             NavigationStack {
                 ZStack {
-                    Color.black
+                    Color(white: 0.12)
                         .ignoresSafeArea()
                     
                     ScrollView {
@@ -77,6 +78,8 @@ struct ProfileView: View {
                                 }
                             }
                             .padding(.horizontal)
+                            
+                            //to fix
                             
                             UserProfileHeaderView(
                                 profileImageName: "logo",

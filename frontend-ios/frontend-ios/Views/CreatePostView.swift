@@ -6,10 +6,243 @@
 //
 
 import SwiftUI
+import PhotosUI
+import MapKit
 
 struct CreatePostView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var title: String = ""
+    @State private var bodyText: String = ""
+    @State private var linkText: String = ""
+    
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedImage: UIImage?
+    
+    @State private var showLinkField: Bool = false
+    @State private var showMapPicker: Bool = false
+    
+    @State private var selectedCoordinate: CLLocationCoordinate2D?
+    @State private var selectedMapPosition: MapCameraPosition = .automatic
+    
     var body: some View {
-        Text("create post")
+        NavigationStack {
+            ZStack {
+                
+                Color(white: 0.12)
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    topBar
+                    
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 22) {
+                            titleField
+                            bodyField
+                            linkSection
+                            imagePreviewSection
+                            mapPreviewSection
+                            
+                            Spacer(minLength: 30)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                    }
+                    
+                    bottomToolbar
+                }
+            }
+            .sheet(isPresented: $showMapPicker) {
+                MapPickerView(
+                    selectedCoordinate: $selectedCoordinate,
+                    selectedPosition: $selectedMapPosition
+                )
+            }
+            .onChange(of: selectedPhotoItem) { _, newItem in
+                Task {
+                    await loadSelectedPhoto(from: newItem)
+                }
+            }
+        }
+    }
+    
+    private var topBar: some View {
+        HStack {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
+            
+            Spacer()
+            
+            Button {
+                publishPost()
+            } label: {
+                Text("Publish")
+                    .font(.headline)
+                    .foregroundColor(canPublish ? .black : .gray)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 12)
+                    .background(
+                        Capsule()
+                            .fill(canPublish ? Color.white : Color(white: 0.18))
+                    )
+            }
+            .disabled(!canPublish)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 18)
+    }
+    
+    private var titleField: some View {
+        TextField("", text: $title, prompt: Text("Title").foregroundColor(.gray))
+            .font(.system(size: 28, weight: .bold))
+            .foregroundColor(.white)
+            .textFieldStyle(.plain)
+    }
+    
+    private var bodyField: some View {
+        ZStack(alignment: .topLeading) {
+            if bodyText.isEmpty {
+                Text("Body text (optional)")
+                    .foregroundColor(.gray)
+                    .padding(.top, 8)
+                    .padding(.leading, 4)
+            }
+            
+            TextEditor(text: $bodyText)
+                .scrollContentBackground(.hidden)
+                .foregroundColor(.white)
+                .frame(minHeight: 180)
+                .background(Color.clear)
+        }
+    }
+    
+    private var linkSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if showLinkField {
+                TextField("", text: $linkText, prompt: Text("Paste a link").foregroundColor(.gray))
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(white: 0.14))
+                    )
+            }
+        }
+    }
+    
+    private var imagePreviewSection: some View {
+        Group {
+            if let selectedImage {
+                Image(uiImage: selectedImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 240)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+            }
+        }
+    }
+    
+    private var mapPreviewSection: some View {
+        Group {
+            if let coordinate = selectedCoordinate {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Selected location")
+                        .foregroundColor(.white)
+                        .font(.headline)
+                    
+                    Map(position: .constant(.region(
+                        MKCoordinateRegion(
+                            center: coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                        )
+                    ))) {
+                        Marker("Location", coordinate: coordinate)
+                    }
+                    .frame(height: 220)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    
+                    Text("Lat: \(coordinate.latitude)\nLon: \(coordinate.longitude)")
+                        .foregroundColor(.gray)
+                        .font(.footnote)
+                }
+            }
+        }
+    }
+    
+    private var bottomToolbar: some View {
+        HStack(spacing: 30) {
+            Button {
+                showLinkField.toggle()
+            } label: {
+                Image(systemName: "link")
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
+            
+            PhotosPicker(selection: $selectedPhotoItem, matching: .any(of: [.images, .videos])) {
+                Image(systemName: "photo.on.rectangle")
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
+            
+            Button {
+                showMapPicker = true
+            } label: {
+                Image(systemName: "map")
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 18)
+        .background(Color.black)
+    }
+    
+    private var canPublish: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
+    private func loadSelectedPhoto(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+        
+        if let data = try? await item.loadTransferable(type: Data.self),
+           let image = UIImage(data: data) {
+            selectedImage = image
+        }
+    }
+    
+    private func publishPost() {
+        let imageData = selectedImage?.jpegData(compressionQuality: 0.8)
+        
+        let newPost = Post(
+            userId: "current_user_id",
+            title: title,
+            creationDate: Date(),
+            editionDate: nil,
+            description: bodyText,
+            hidden: false,
+            imageData: imageData,
+            latitude: selectedCoordinate?.latitude,
+            longitude: selectedCoordinate?.longitude
+        )
+        
+        //print to test, toca aqui meter el metodo
+        //para guardar en firebase y a;adir al validacion de
+        //si se guardo cerrar la tab o mostrar error
+        print("Post ready to save:", newPost)
+        print("Link:", linkText)
+        
+        dismiss()
     }
 }
 

@@ -13,10 +13,16 @@ struct CommentsView: View {
     let postId: String
     
     var body: some View {
-        NavigationStack {
-            Text("Comments for post: \(postId)")
-                .padding()
-                .navigationTitle("Comments")
+        VStack{
+            Color(white: 0.12)
+                .ignoresSafeArea()
+            
+            NavigationStack {
+                Text("Comments for post: \(postId)")
+                    .padding()
+                    .navigationTitle("Comments")
+            }
+            
         }
     }
 }

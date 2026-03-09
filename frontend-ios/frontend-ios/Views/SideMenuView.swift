@@ -9,6 +9,8 @@ import SwiftUI
 
 struct SideMenuView: View {
     @Binding var showMenu: Bool
+    @ObservedObject private var auth = AuthService.shared
+    @State private var errorMessage: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -21,15 +23,15 @@ struct SideMenuView: View {
                 
                 Spacer()
                 
-                Button {
-                    withAnimation {
-                        showMenu = false
-                    }
-                } label: {
-                    Image(systemName: "xmark")
-                        .foregroundColor(.white)
-                        .font(.headline)
-                }
+//                Button {
+//                    withAnimation {
+//                        showMenu = false
+//                    }
+//                } label: {
+//                    Image(systemName: "xmark")
+//                        .foregroundColor(.white)
+//                        .font(.headline)
+//                }
             }
             .padding()
             
@@ -37,11 +39,11 @@ struct SideMenuView: View {
                 .overlay(Color.white.opacity(0.15))
             
             menuButton(icon: "person.crop.circle", title: "Edit Profile")
-            menuButton(icon: "bookmark", title: "Saved Posts")
-            menuButton(icon: "bell", title: "Notifications")
+           // menuButton(icon: "bookmark", title: "Saved Posts")
             menuButton(icon: "gearshape", title: "Settings")
             menuButton(icon: "questionmark.circle", title: "Help")
-            menuButton(icon: "rectangle.portrait.and.arrow.right", title: "Log Out")
+            //menuButton(icon: "rectangle.portrait.and.arrow.right", title: "Log Out")
+            logoutButton()
             
             Spacer()
         }
@@ -55,6 +57,35 @@ struct SideMenuView: View {
             alignment: .leading
         )
     }
+    
+    private func logoutButton() -> some View {
+            Button {
+                let result = auth.signOut()
+                
+                if case .failure(let failure) = result {
+                    errorMessage = failure.localizedDescription
+                } else {
+                    errorMessage = nil
+                    showMenu = false
+                }
+                
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .frame(width: 20)
+                        .foregroundColor(.red)
+                    
+                    Text("Log Out")
+                        .foregroundColor(.red)
+                        .font(.body)
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 16)
+            }
+        }
+    
     
     private func menuButton(icon: String, title: String) -> some View {
         Button {
