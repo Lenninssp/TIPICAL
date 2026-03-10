@@ -1,11 +1,11 @@
 import z from "zod";
 import type { SessionStore } from "../session.store";
 import { Hono } from "hono";
-import { getFirebaseAuth } from "../../shared/lib/firebase-admin";
 import { createSession } from "../session";
 import { sign } from "hono/jwt";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { getDatabase } from "firebase-admin/database";
+import { getAuth } from "firebase-admin/auth";
 
 const BodySchema = z.object({
   idToken: z.string().min(1)
@@ -23,7 +23,7 @@ export function firebaseAuthRouter(store: SessionStore) {
 
     const { idToken } = parsed.data;
 
-    const auth = getFirebaseAuth();
+    const auth = getAuth();
     let decoded;
     try {
       decoded = await auth.verifyIdToken(idToken, true)
