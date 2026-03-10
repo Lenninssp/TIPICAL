@@ -21,7 +21,6 @@ final class AuthService: ObservableObject {
 
     private init() {}
 
-    // MARK: - Sign up
 
     func signUp(
         email: String,
@@ -62,7 +61,6 @@ final class AuthService: ObservableObject {
         }
     }
 
-    // MARK: - Login
 
     func login(
         email: String,
@@ -128,7 +126,6 @@ final class AuthService: ObservableObject {
         }
     }
 
-    // MARK: - Backend login with Firebase token
 
     private struct BackendLoginResponse: Decodable {
         let ok: Bool
@@ -195,7 +192,6 @@ final class AuthService: ObservableObject {
         }
     }
 
-    // MARK: - Fetch current app user
 
     func fetchCurrentAppUser(
         completion: @escaping (Result<AppUser?, Error>) -> Void
@@ -231,8 +227,8 @@ final class AuthService: ObservableObject {
         }
     }
 
-    // MARK: - Update profile
 
+//llamar para actualizar un perfil
     func updateProfile(
         displayName: String,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -254,7 +250,7 @@ final class AuthService: ObservableObject {
         }
     }
 
-    // MARK: - Backend logout
+
 
     private func logoutFromBackend(
         completion: @escaping (Result<Void, Error>) -> Void
@@ -290,7 +286,7 @@ final class AuthService: ObservableObject {
         }.resume()
     }
 
-    // MARK: - Optional backend /me debug helper
+ 
 
     func backendMe(
         completion: @escaping (Result<String, Error>) -> Void
@@ -326,7 +322,6 @@ final class AuthService: ObservableObject {
         }.resume()
     }
 
-    // MARK: - Sign out
 
     func signOut(completion: @escaping (Result<Void, Error>) -> Void) {
         logoutFromBackend { backendResult in

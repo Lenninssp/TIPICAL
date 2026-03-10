@@ -36,7 +36,7 @@ struct LoginView: View {
                             .padding(.vertical)
                         
                         VStack(alignment: .leading, spacing: 4) {
-                                //Email
+                                
                             Text("Email")
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
@@ -47,8 +47,7 @@ struct LoginView: View {
                         }
                         .padding(.horizontal)
                         .padding(.top, 15)
-                        
-                            // Password
+                          
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Password")
                                 .fontWeight(.bold)

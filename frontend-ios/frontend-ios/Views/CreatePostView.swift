@@ -4,6 +4,12 @@
 //
 //  Created by Sofia Guerra on 2026-03-08.
 //
+//
+//  CreatePostView.swift
+//  frontend-ios
+//
+//  Created by Sofia Guerra on 2026-03-08.
+//
 
 import SwiftUI
 import PhotosUI
@@ -11,30 +17,33 @@ import MapKit
 
 struct CreatePostView: View {
     @Environment(\.dismiss) private var dismiss
-    
+    @EnvironmentObject var feedViewModel: FeedViewModel
+
     @State private var title: String = ""
     @State private var bodyText: String = ""
     @State private var linkText: String = ""
-    
+
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
-    
+
     @State private var showLinkField: Bool = false
     @State private var showMapPicker: Bool = false
-    
+
     @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var selectedMapPosition: MapCameraPosition = .automatic
-    
+
+    @State private var isPublishing = false
+    @State private var errorMessage: String?
+
     var body: some View {
         NavigationStack {
             ZStack {
-                
                 Color(white: 0.12)
                     .ignoresSafeArea()
-                
+
                 VStack(spacing: 0) {
                     topBar
-                    
+
                     ScrollView {
                         VStack(alignment: .leading, spacing: 22) {
                             titleField
@@ -42,13 +51,19 @@ struct CreatePostView: View {
                             linkSection
                             imagePreviewSection
                             mapPreviewSection
-                            
+
+                            if let errorMessage {
+                                Text(errorMessage)
+                                    .foregroundColor(.red)
+                                    .font(.footnote)
+                            }
+
                             Spacer(minLength: 30)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
                     }
-                    
+
                     bottomToolbar
                 }
             }
@@ -65,7 +80,7 @@ struct CreatePostView: View {
             }
         }
     }
-    
+
     private var topBar: some View {
         HStack {
             Button {
@@ -75,13 +90,13 @@ struct CreatePostView: View {
                     .font(.title2)
                     .foregroundColor(.white)
             }
-            
+
             Spacer()
-            
+
             Button {
                 publishPost()
             } label: {
-                Text("Publish")
+                Text(isPublishing ? "Publishing..." : "Publish")
                     .font(.headline)
                     .foregroundColor(canPublish ? .black : .gray)
                     .padding(.horizontal, 22)
@@ -91,20 +106,20 @@ struct CreatePostView: View {
                             .fill(canPublish ? Color.white : Color(white: 0.18))
                     )
             }
-            .disabled(!canPublish)
+            .disabled(!canPublish || isPublishing)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 18)
     }
-    
+
     private var titleField: some View {
         TextField("", text: $title, prompt: Text("Title").foregroundColor(.gray))
             .font(.system(size: 28, weight: .bold))
             .foregroundColor(.white)
             .textFieldStyle(.plain)
     }
-    
+
     private var bodyField: some View {
         ZStack(alignment: .topLeading) {
             if bodyText.isEmpty {
@@ -113,7 +128,7 @@ struct CreatePostView: View {
                     .padding(.top, 8)
                     .padding(.leading, 4)
             }
-            
+
             TextEditor(text: $bodyText)
                 .scrollContentBackground(.hidden)
                 .foregroundColor(.white)
@@ -121,7 +136,7 @@ struct CreatePostView: View {
                 .background(Color.clear)
         }
     }
-    
+
     private var linkSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             if showLinkField {
@@ -135,7 +150,7 @@ struct CreatePostView: View {
             }
         }
     }
-    
+
     private var imagePreviewSection: some View {
         Group {
             if let selectedImage {
@@ -149,7 +164,7 @@ struct CreatePostView: View {
             }
         }
     }
-    
+
     private var mapPreviewSection: some View {
         Group {
             if let coordinate = selectedCoordinate {
@@ -157,7 +172,7 @@ struct CreatePostView: View {
                     Text("Selected location")
                         .foregroundColor(.white)
                         .font(.headline)
-                    
+
                     Map(position: .constant(.region(
                         MKCoordinateRegion(
                             center: coordinate,
@@ -168,7 +183,7 @@ struct CreatePostView: View {
                     }
                     .frame(height: 220)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                    
+
                     Text("Lat: \(coordinate.latitude)\nLon: \(coordinate.longitude)")
                         .foregroundColor(.gray)
                         .font(.footnote)
@@ -176,7 +191,7 @@ struct CreatePostView: View {
             }
         }
     }
-    
+
     private var bottomToolbar: some View {
         HStack(spacing: 30) {
             Button {
@@ -186,13 +201,13 @@ struct CreatePostView: View {
                     .font(.title2)
                     .foregroundColor(.white)
             }
-            
+
             PhotosPicker(selection: $selectedPhotoItem, matching: .any(of: [.images, .videos])) {
                 Image(systemName: "photo.on.rectangle")
                     .font(.title2)
                     .foregroundColor(.white)
             }
-            
+
             Button {
                 showMapPicker = true
             } label: {
@@ -200,45 +215,52 @@ struct CreatePostView: View {
                     .font(.title2)
                     .foregroundColor(.white)
             }
-            
+
             Spacer()
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 18)
         .background(Color.black)
     }
-    
+
     private var canPublish: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-    
+
     private func loadSelectedPhoto(from item: PhotosPickerItem?) async {
         guard let item else { return }
-        
+
         if let data = try? await item.loadTransferable(type: Data.self),
            let image = UIImage(data: data) {
             selectedImage = image
         }
     }
-    
+
     private func publishPost() {
+        guard !isPublishing else { return }
+
+        isPublishing = true
+        errorMessage = nil
+
         PostService.shared.createPost(
-            title: title,
-            description: bodyText,
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            description: bodyText.trimmingCharacters(in: .whitespacesAndNewlines),
             archived: false
-//            hidden: false,
-//             imageData: imageData,
-//             latitude: selectedCoordinate?.latitude,
-//             longitude: selectedCoordinate?.longitude
         ) { result in
             DispatchQueue.main.async {
+                self.isPublishing = false
+
                 switch result {
                 case .success(let createdPost):
                     print("Created post:", createdPost)
+
+                    feedViewModel.prependPost(createdPost)
+
                     dismiss()
-                    
+
                 case .failure(let error):
                     print("Create post error:", error.localizedDescription)
+                    self.errorMessage = error.localizedDescription
                 }
             }
         }
@@ -247,4 +269,5 @@ struct CreatePostView: View {
 
 #Preview {
     CreatePostView()
+        .environmentObject(FeedViewModel())
 }
