@@ -132,13 +132,6 @@ export const handler = async (
   const requestedId = params.id === "me" ? currentUser.id : params.id;
     console.log("[profiles/me] requestedId", requestedId);
 
-
-  if (requestedId !== currentUser.id) {
-        console.log("[profiles/me] forbidden");
-
-    return unauthorizedResponse(c);
-  }
-
   const profileSnap = await db.ref(entityType).child(requestedId).get();
     console.log("[profiles/me] profileSnap.exists()", profileSnap.exists());
 
