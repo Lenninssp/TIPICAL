@@ -10,6 +10,7 @@ import Foundation
 extension Post {
     init(apiItem: PostResponseItem) {
         self.init(
+            id: apiItem.id,
             userId: apiItem.attributes.userId ?? "",
             title: apiItem.attributes.title,
             creationDate: Date(

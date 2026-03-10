@@ -4,14 +4,14 @@ import { useState } from "react";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-const API = process.env.NEXT_PUBLIC_API_BASE ?? "";
+const API = process.env.NEXT_PUBLIC_TIPICAL_API_BASE_URL ?? "";
 
 export default function Home() {
   const [link, setLink] = useState(API);
   const [output, setOutput] = useState<any>("");
   const [firebaseEmail, setFirebaseEmail] = useState("");
   const [firebasePassword, setFirebasePassword] = useState("");
-  const [devBearerToken, setDevBearerToken] = useState("");
+  const [bearerToken, setBearerToken] = useState("");
 
   const [postId, setPostId] = useState("");
   const [profileFields, setProfileFields] = useState("");
@@ -53,11 +53,6 @@ export default function Home() {
     imageUrl: "",
   });
 
-  async function handleResponse(res: Response) {
-    const data = await res.json().catch(() => res.text());
-    setOutput(data);
-  }
-
   async function firebaseLogin() {
     try {
       const credential = await signInWithEmailAndPassword(
@@ -68,37 +63,43 @@ export default function Home() {
 
       const idToken = await credential.user.getIdToken();
 
-      await runRequest(`${API}/auth/firebase/login`, {
+      const data = await runRequest(`${API}/auth/firebase/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
+
+      if (data?.token) {
+        setBearerToken(data.token);
+      }
     } catch (err: any) {
       setOutput(err?.message ?? "Firebase login failed");
     }
   }
 
-async function runRequest(url: string, options?: RequestInit) {
-  setLink(url);
+  async function runRequest(url: string, options?: RequestInit) {
+    setLink(url);
 
-  try {
-    const headers = new Headers(options?.headers ?? {});
+    try {
+      const headers = new Headers(options?.headers ?? {});
 
-    if (devBearerToken) {
-      headers.set("Authorization", `Bearer ${devBearerToken}`);
+      if (bearerToken) {
+        headers.set("Authorization", `Bearer ${bearerToken}`);
+      }
+
+      const res = await fetch(url, {
+        ...options,
+        headers,
+      });
+
+      const data = await res.json().catch(() => null);
+      setOutput(data ?? "No JSON response");
+      return data;
+    } catch (err: any) {
+      setOutput(err?.message ?? "Unknown error");
+      return null;
     }
-
-    const res = await fetch(url, {
-      credentials: "include",
-      ...options,
-      headers,
-    });
-
-    await handleResponse(res);
-  } catch (err: any) {
-    setOutput(err?.message ?? "Unknown error");
   }
-}
 
 async function devLogin() {
   setLink(`${API}/auth/dev/login`);
@@ -113,7 +114,7 @@ async function devLogin() {
     setOutput(data);
 
     if (data?.token) {
-      setDevBearerToken(data.token);
+      setBearerToken(data.token);
     }
   } catch (err: any) {
     setOutput(err?.message ?? "Unknown error");
@@ -228,7 +229,8 @@ async function devLogin() {
   }
 
 async function logout() {
-  setDevBearerToken("");
+  const currentToken = bearerToken;
+  setBearerToken("");
 
   try {
     await signOut(auth);
@@ -238,6 +240,9 @@ async function logout() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(currentToken
+        ? { Authorization: `Bearer ${currentToken}` }
+        : {}),
     },
   });
 }

@@ -13,6 +13,7 @@ struct ProfileView: View {
     //sample data borrar
     let posts: [Post] = [
         Post(
+            id: "0",
             userId: "user_1",
             title: "Exploring ancient places",
             creationDate: Date(),
@@ -24,6 +25,7 @@ struct ProfileView: View {
             longitude: nil
         ),
         Post(
+            id: "1",
             userId: "user_1",
             title: "A beautiful landscape",
             creationDate: Date(),
@@ -35,6 +37,7 @@ struct ProfileView: View {
             longitude: nil
         ),
         Post(
+            id: "2",
             userId: "user_1",
             title: "Working with technology",
             creationDate: Date(),

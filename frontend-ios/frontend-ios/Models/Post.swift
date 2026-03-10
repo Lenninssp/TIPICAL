@@ -11,7 +11,7 @@ import CoreLocation
 
 struct Post: Identifiable, Codable {
     
-    @DocumentID var id: String?
+    var id: String 
     
     let userId: String
     var title: String

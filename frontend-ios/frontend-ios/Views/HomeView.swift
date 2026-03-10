@@ -58,19 +58,31 @@ struct HomeView: View {
     }
     
     func loadPosts() {
-            PostService.shared.fetchPosts(limit: 20) { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success(let fetchedPosts):
-                        self.posts = fetchedPosts.map { Post(apiItem: $0) }
-                        self.errorMessage = nil
-                        
-                    case .failure(let error):
-                        self.errorMessage = error.localizedDescription
+        PostService.shared.fetchPosts(limit: 20) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let fetchedPosts):
+                    print("===== RAW API IDS =====")
+                    for item in fetchedPosts {
+                        print("api id =", item.id)
                     }
+
+                    let mappedPosts = fetchedPosts.map { Post(apiItem: $0) }
+
+                    print("===== MAPPED POST IDS =====")
+                    for post in mappedPosts {
+                        print("mapped post id =", post.id)
+                    }
+
+                    self.posts = mappedPosts
+                    self.errorMessage = nil
+
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
                 }
             }
         }
+    }
 }
 
 #Preview {

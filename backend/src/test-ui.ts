@@ -19,7 +19,7 @@ export function testUiRouter() {
   </style>
 </head>
 <body>
-  <h1>Firebase Session Auth Test</h1>
+  <h1>Firebase Bearer Auth Test</h1>
 
   <p>Paste a <b>Firebase ID token</b> below (from your client), then click Login.</p>
 
@@ -38,19 +38,22 @@ export function testUiRouter() {
 <script>
   const out = document.getElementById("out");
   const tokenEl = document.getElementById("token");
+  let bearerToken = "";
 
   function show(obj) {
     out.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
   }
 
   async function call(path, options = {}) {
+    const headers = {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    };
+    if (bearerToken) headers["Authorization"] = "Bearer " + bearerToken;
+
     const res = await fetch(path, {
       ...options,
-      credentials: "include", // IMPORTANT: store/send cookies
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      }
+      headers
     });
     const text = await res.text();
     let body = text;
@@ -65,6 +68,7 @@ export function testUiRouter() {
       method: "POST",
       body: JSON.stringify({ idToken })
     });
+    if (result?.body?.token) bearerToken = result.body.token;
     show(result);
   };
 
@@ -75,6 +79,7 @@ export function testUiRouter() {
 
   document.getElementById("logout").onclick = async () => {
     const result = await call("/auth/firebase/logout", { method: "POST" });
+    bearerToken = "";
     show(result);
   };
 </script>

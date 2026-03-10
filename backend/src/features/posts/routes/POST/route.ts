@@ -11,6 +11,7 @@ import { NotFoundResponseSchema } from "../../../shared/responses/notFoundRespon
 import { pickObjectProperties } from "../../../../utils/object";
 import { buildUrlQueryString } from "../../../../utils/url";
 import { getDatabase } from "firebase-admin/database";
+import { getCurrentUserId } from "../../../auth/current-user";
 
 const entityType = "posts";
 
@@ -87,9 +88,8 @@ export const handler = async (
   const query = c.req.valid("query");
   const body = c.req.valid("json");
   
-  // todo: replace for the real check
-  const user = true;
-  if (!user) return unauthorizedResponse(c, "No user found");
+  const userId = getCurrentUserId(c);
+  if (!userId) return unauthorizedResponse(c, "No user found");
 
   const origin = new URL(c.req.url).origin;
 
@@ -102,7 +102,7 @@ export const handler = async (
 
   const record = {
     ...body,
-    userId: (body as any).userId ?? "user_abc", 
+    userId,
     archived: (body as any).archived ?? false,
     createdAt: now,
     updatedAt: now,

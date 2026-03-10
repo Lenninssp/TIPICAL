@@ -11,15 +11,8 @@ final class PostService {
     static let shared = PostService()
     private init() {}
 
-    private let backendBaseURL = "https://lenninsabogal.online/tipical"
-
-    private var session: URLSession {
-        let config = URLSessionConfiguration.default
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        config.httpShouldSetCookies = true
-        config.httpCookieAcceptPolicy = .always
-        return URLSession(configuration: config)
-    }
+    private let backendBaseURL = APIConfiguration.baseURL
+    private let tokenStore = TokenStore.shared
 
     // MARK: - Debug helpers
 
@@ -34,17 +27,6 @@ final class PostService {
             print("Body:", bodyString)
         } else {
             print("Body: nil")
-        }
-
-        if let url = request.url,
-           let cookies = HTTPCookieStorage.shared.cookies(for: url),
-           !cookies.isEmpty {
-            print("Cookies for request URL:")
-            for cookie in cookies {
-                print("- \(cookie.name)=\(cookie.value); domain=\(cookie.domain); path=\(cookie.path)")
-            }
-        } else {
-            print("Cookies for request URL: none")
         }
 
         print("====================================")
@@ -78,16 +60,29 @@ final class PostService {
             print("Raw Body: nil")
         }
 
-        if let cookies = HTTPCookieStorage.shared.cookies, !cookies.isEmpty {
-            print("All shared cookies after response:")
-            for cookie in cookies {
-                print("- \(cookie.name)=\(cookie.value); domain=\(cookie.domain); path=\(cookie.path)")
-            }
-        } else {
-            print("All shared cookies after response: none")
+        print("=====================================")
+    }
+
+    private func authorizedRequest(
+        url: URL,
+        method: String,
+        body: Data? = nil,
+        contentType: String? = nil
+    ) -> Result<URLRequest, Error> {
+        guard let token = tokenStore.loadToken() else {
+            return .failure(SimpleError("Missing auth token, login is required"))
         }
 
-        print("=====================================")
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        if let contentType = contentType {
+            request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        }
+
+        request.httpBody = body
+        return .success(request)
     }
 
     // MARK: - Fetch posts
@@ -101,13 +96,17 @@ final class PostService {
             return completion(.failure(SimpleError("Invalid posts URL")))
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.httpShouldHandleCookies = true
+        let request: URLRequest
+        switch authorizedRequest(url: url, method: "GET") {
+        case .failure(let error):
+            return completion(.failure(error))
+        case .success(let built):
+            request = built
+        }
 
         logRequest(request, name: "FETCH POSTS")
 
-        session.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             self.logResponse(data: data, response: response, error: error, name: "FETCH POSTS")
 
             if let error = error {
@@ -142,6 +141,56 @@ final class PostService {
         }.resume()
     }
 
+    // MARK: - Fetch single post
+
+    func fetchPost(
+        postId: String,
+        completion: @escaping (Result<PostResponseItem, Error>) -> Void
+    ) {
+        guard let url = URL(string: "\(backendBaseURL)/posts/\(postId)") else {
+            print("[PostService.fetchPost] Invalid post URL")
+            return completion(.failure(SimpleError("Invalid post URL")))
+        }
+
+        let request: URLRequest
+        switch authorizedRequest(url: url, method: "GET") {
+        case .failure(let error):
+            return completion(.failure(error))
+        case .success(let built):
+            request = built
+        }
+
+        logRequest(request, name: "FETCH POST")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            self.logResponse(data: data, response: response, error: error, name: "FETCH POST")
+
+            if let error = error {
+                return completion(.failure(error))
+            }
+
+            guard let http = response as? HTTPURLResponse else {
+                return completion(.failure(SimpleError("Invalid response")))
+            }
+
+            guard (200...299).contains(http.statusCode) else {
+                let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "No body"
+                return completion(.failure(SimpleError("Fetch post failed (\(http.statusCode)): \(body)")))
+            }
+
+            guard let data = data else {
+                return completion(.failure(SimpleError("Missing response data")))
+            }
+
+            do {
+                let decoded = try JSONDecoder().decode(APIResource<PostResponseItem>.self, from: data)
+                completion(.success(decoded.data))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
     // MARK: - Create post
 
     func createPost(
@@ -161,21 +210,30 @@ final class PostService {
             archived: archived
         )
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpShouldHandleCookies = true
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
+        let body: Data
         do {
-            request.httpBody = try JSONEncoder().encode(payload)
+            body = try JSONEncoder().encode(payload)
         } catch {
             print("[PostService.createPost] Encode error:", error.localizedDescription)
             return completion(.failure(error))
         }
 
+        let request: URLRequest
+        switch authorizedRequest(
+            url: url,
+            method: "POST",
+            body: body,
+            contentType: "application/json"
+        ) {
+        case .failure(let error):
+            return completion(.failure(error))
+        case .success(let built):
+            request = built
+        }
+
         logRequest(request, name: "CREATE POST")
 
-        session.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             self.logResponse(data: data, response: response, error: error, name: "CREATE POST")
 
             if let error = error {
@@ -230,21 +288,30 @@ final class PostService {
             archived: archived
         )
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "PATCH"
-        request.httpShouldHandleCookies = true
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
+        let body: Data
         do {
-            request.httpBody = try JSONEncoder().encode(payload)
+            body = try JSONEncoder().encode(payload)
         } catch {
             print("[PostService.updatePost] Encode error:", error.localizedDescription)
             return completion(.failure(error))
         }
 
+        let request: URLRequest
+        switch authorizedRequest(
+            url: url,
+            method: "PATCH",
+            body: body,
+            contentType: "application/json"
+        ) {
+        case .failure(let error):
+            return completion(.failure(error))
+        case .success(let built):
+            request = built
+        }
+
         logRequest(request, name: "UPDATE POST")
 
-        session.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             self.logResponse(data: data, response: response, error: error, name: "UPDATE POST")
 
             if let error = error {
@@ -290,13 +357,17 @@ final class PostService {
             return completion(.failure(SimpleError("Invalid delete post URL")))
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
-        request.httpShouldHandleCookies = true
+        let request: URLRequest
+        switch authorizedRequest(url: url, method: "DELETE") {
+        case .failure(let error):
+            return completion(.failure(error))
+        case .success(let built):
+            request = built
+        }
 
         logRequest(request, name: "DELETE POST")
 
-        session.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             self.logResponse(data: data, response: response, error: error, name: "DELETE POST")
 
             if let error = error {

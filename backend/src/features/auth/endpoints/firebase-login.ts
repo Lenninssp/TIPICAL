@@ -1,24 +1,20 @@
 import z from "zod";
-import type { SessionStore } from "../session.store";
 import { Hono } from "hono";
-import { createSession } from "../session";
 import { sign } from "hono/jwt";
-import { deleteCookie, setCookie } from "hono/cookie";
 import { getDatabase } from "firebase-admin/database";
 import { getAuth } from "firebase-admin/auth";
 
 const BodySchema = z.object({
-  idToken: z.string().min(1)
-})
+  idToken: z.string().min(1),
+});
 
-export function firebaseAuthRouter(store: SessionStore) {
+export function firebaseAuthRouter() {
   const app = new Hono();
 
-  // todo: bring this implementation up to standard of the other endpoints, but little by little
   app.post("/login", async (c) => {
     const parsed = BodySchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
-      return c.json({ error: "Invalid bodyLimit, Expected { idToken: string}"}, 400);
+      return c.json({ error: "Invalid body. Expected { idToken: string }" }, 400);
     }
 
     const { idToken } = parsed.data;
@@ -26,17 +22,15 @@ export function firebaseAuthRouter(store: SessionStore) {
     const auth = getAuth();
     let decoded;
     try {
-      decoded = await auth.verifyIdToken(idToken, true)
+      decoded = await auth.verifyIdToken(idToken, true);
     } catch {
       return c.json({ error: "Invalid Firebase token" }, 401);
     }
 
-     const userId = decoded.uid;
+    const userId = decoded.uid;
     const email = decoded.email ?? null;
     const profilePicture = decoded.picture ?? null;
-    const username =
-      decoded.name ??
-      (email ? email.split("@")[0] : "user");
+    const username = decoded.name ?? (email ? email.split("@")[0] : "user");
 
     const db = getDatabase();
     const profileRef = db.ref("profiles").child(userId);
@@ -74,39 +68,38 @@ export function firebaseAuthRouter(store: SessionStore) {
       });
     }
 
-    const expirationMs = Number(process.env.AUTH_SESSION_EXPIRATION_MS ?? "86400000");
-    const expiresAt = new Date(Date.now() + expirationMs);
-    const session = await createSession(store, userId, expiresAt);
-
     const secret = process.env.AUTH_SECRET;
     if (!secret) throw new Error("Missing AUTH_SECRET");
 
-    const jwt = await sign({ sessionId: session.id }, secret);
+    const expirationMs = Number(
+      process.env.AUTH_TOKEN_EXPIRATION_MS ??
+        process.env.AUTH_SESSION_EXPIRATION_MS ??
+        "86400000",
+    );
+    const expiresAtUnix = Math.floor((Date.now() + expirationMs) / 1000);
 
-    const env = process.env.ENVIRONMENT ?? "development";
-    const cookieName = process.env.AUTH_COOKIE_NAME ?? (env === "production" ? "__Secure-session" : "session");
+    const token = await sign(
+      {
+        sub: userId,
+        userId,
+        type: "firebase",
+        exp: expiresAtUnix,
+      },
+      secret,
+    );
 
-    setCookie(c, cookieName, jwt, {
-      path: "/",
-      httpOnly: true,
-      secure: env === "production",
-      sameSite: env === "production" ? "None" : "Lax",
-      expires: expiresAt,
+    return c.json({
+      ok: true,
+      userId,
+      token,
+      tokenType: "Bearer",
+      expiresAt: new Date(expiresAtUnix * 1000).toISOString(),
     });
-
-    return c.json({ ok: true });
   });
 
-  app.post("/logout", async(c) => {
-    const env = process.env.ENVIRONMENT ?? "development";
-    const cookieName = 
-      process.env.AUTH_COOKIE_NAME ??
-      (env === "production" ? "__Secure-session" : "session");
-
-      deleteCookie(c, cookieName, { path: "/"});
-
-      return c.json({ ok: true });
-  })
+  app.post("/logout", async (c) => {
+    return c.json({ ok: true });
+  });
 
   return app;
 }
