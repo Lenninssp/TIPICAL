@@ -264,6 +264,7 @@ struct PostView: View {
 //esto debe de venir de firebase o de la db. igual que con la cuenta de likes y comentarios
 #Preview {
     let samplePost = Post(
+        id: "0",
         userId: "user_123",
         title: "I am visiting Montreal and saw this weird building",
         creationDate: Date(),

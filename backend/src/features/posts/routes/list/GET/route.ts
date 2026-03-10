@@ -12,6 +12,7 @@ import type { Context, Env } from "hono";
 import { getDatabase } from "firebase-admin/database";
 import { pickObjectProperties } from "../../../../../utils/object";
 import { buildUrlQueryString } from "../../../../../utils/url";
+import { getCurrentUserId } from "../../../../auth/current-user";
 
 const entityType = "posts";
 
@@ -119,9 +120,8 @@ export const handler = async (
 ) => {
   const query = c.req.valid("query");
 
-  // todo: replace for the real check
-  const user = true;
-  if (!user) return unauthorizedResponse(c, "No user found");
+  const userId = getCurrentUserId(c);
+  if (!userId) return unauthorizedResponse(c, "No user found");
 
   const origin = new URL(c.req.url).origin;
 

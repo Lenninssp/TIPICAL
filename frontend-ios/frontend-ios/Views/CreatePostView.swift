@@ -222,27 +222,26 @@ struct CreatePostView: View {
     }
     
     private func publishPost() {
-        let imageData = selectedImage?.jpegData(compressionQuality: 0.8)
-        
-        let newPost = Post(
-            userId: "current_user_id",
+        PostService.shared.createPost(
             title: title,
-            creationDate: Date(),
-            editionDate: nil,
             description: bodyText,
-            hidden: false,
-            imageData: imageData,
-            latitude: selectedCoordinate?.latitude,
-            longitude: selectedCoordinate?.longitude
-        )
-        
-        //print to test, toca aqui meter el metodo
-        //para guardar en firebase y a;adir al validacion de
-        //si se guardo cerrar la tab o mostrar error
-        print("Post ready to save:", newPost)
-        print("Link:", linkText)
-        
-        dismiss()
+            archived: false
+//            hidden: false,
+//             imageData: imageData,
+//             latitude: selectedCoordinate?.latitude,
+//             longitude: selectedCoordinate?.longitude
+        ) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let createdPost):
+                    print("Created post:", createdPost)
+                    dismiss()
+                    
+                case .failure(let error):
+                    print("Create post error:", error.localizedDescription)
+                }
+            }
+        }
     }
 }
 

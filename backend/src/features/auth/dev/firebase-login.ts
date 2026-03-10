@@ -47,7 +47,9 @@ export function devAuthRouter() {
     if (!secret) throw new Error("Missing AUTH_SECRET");
 
     const expirationMs = Number(
-      process.env.AUTH_SESSION_EXPIRATION_MS ?? "86400000",
+      process.env.AUTH_TOKEN_EXPIRATION_MS ??
+        process.env.AUTH_SESSION_EXPIRATION_MS ??
+        "86400000",
     );
     const expiresAtUnix = Math.floor((Date.now() + expirationMs) / 1000);
 

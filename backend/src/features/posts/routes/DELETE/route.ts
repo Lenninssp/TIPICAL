@@ -6,6 +6,7 @@ import { unauthorizedResponse, UnauthorizedResponseSchema } from "../../../share
 import { notFoundResponse, NotFoundResponseSchema } from "../../../shared/responses/notFoundResponse";
 import type { Context, Env } from "hono";
 import { getDatabase } from "firebase-admin/database";
+import { getCurrentUserId } from "../../../auth/current-user";
 
 const entityType = "posts";
 
@@ -79,9 +80,8 @@ export const handler = async (
   const origin = new URL(c.req.url).origin;
   const { id } = c.req.valid("param");
 
-  // todo: replace for the real user check
-  const user = true;
-  if (!user) return unauthorizedResponse(c, "No user found");
+  const userId = getCurrentUserId(c);
+  if (!userId) return unauthorizedResponse(c, "No user found");
 
   const postRef = db.ref(`posts/${id}`);
 
@@ -90,9 +90,10 @@ export const handler = async (
     return notFoundResponse(c, "The post doesn't exist");
   }
 
-  // todo: proper id checking of the post and the user
-  // const existing = (snap.val() ?? {}) as Record<string,any>;
-  // if (existing.userId !== currentUserId) return unauthorizedResponse(c, "you are not the owner of this post")
+  const existing = (snap.val() ?? {}) as Record<string, any>;
+  if (existing.userId && existing.userId !== userId) {
+    return unauthorizedResponse(c, "You are not the owner of this post");
+  }
 
   await postRef.remove();
   

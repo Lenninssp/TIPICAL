@@ -60,14 +60,15 @@ struct SideMenuView: View {
     
     private func logoutButton() -> some View {
             Button {
-                let result = auth.signOut()
-                
-                if case .failure(let failure) = result {
-                    errorMessage = failure.localizedDescription
-                } else {
-                    errorMessage = nil
-                    showMenu = false
+                let result = AuthService.shared.signOut { result in
+                    switch result {
+                    case .success:
+                        print("Signed out")
+                    case .failure(let error):
+                        print(error.localizedDescription)
+                    }
                 }
+                
                 
             } label: {
                 HStack(spacing: 14) {

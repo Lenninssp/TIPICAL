@@ -10,6 +10,8 @@ import SwiftUI
 struct HomeView: View {
     
     @State private var posts: [Post] = []
+    @State private var errorMessage: String?
+
     
     var body: some View {
         
@@ -56,19 +58,30 @@ struct HomeView: View {
     }
     
     func loadPosts() {
-        let examplePost = Post(
-            userId: "123",
-            title: "Example title",
-            creationDate: Date(),
-            editionDate: nil,
-            description: "Example description",
-            hidden: false,
-            imageData: nil,
-            latitude: nil,
-            longitude: nil
-        )
-        
-        posts = [examplePost, examplePost, examplePost]
+        PostService.shared.fetchPosts(limit: 20) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let fetchedPosts):
+                    print("===== RAW API IDS =====")
+                    for item in fetchedPosts {
+                        print("api id =", item.id)
+                    }
+
+                    let mappedPosts = fetchedPosts.map { Post(apiItem: $0) }
+
+                    print("===== MAPPED POST IDS =====")
+                    for post in mappedPosts {
+                        print("mapped post id =", post.id)
+                    }
+
+                    self.posts = mappedPosts
+                    self.errorMessage = nil
+
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
     }
 }
 

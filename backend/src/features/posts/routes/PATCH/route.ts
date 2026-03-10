@@ -19,6 +19,7 @@ import type { Context, Env } from "hono";
 import { getDatabase } from "firebase-admin/database";
 import { pickObjectProperties } from "../../../../utils/object";
 import { buildUrlQueryString } from "../../../../utils/url";
+import { getCurrentUserId } from "../../../auth/current-user";
 
 const entityType = "posts";
 
@@ -52,7 +53,7 @@ const ResponseSchema = createSuccessResponseSchema(entityType, PostSchema);
 
 export const route = createRoute({
   method: "patch",
-  path: `${entityType}/{id}`,
+  path: `/${entityType}/{id}`,
   request: {
     query: QuerySchema,
     params: ParamsSchema,
@@ -109,9 +110,8 @@ export const handler = async (
   const { id } = c.req.valid("param");
   const query = c.req.valid("query");
   const body = c.req.valid("json");
-  // todo: replace for the real user check
-  const user = true;
-  if (!user) return unauthorizedResponse(c, "No user found");
+  const userId = getCurrentUserId(c);
+  if (!userId) return unauthorizedResponse(c, "No user found");
   
   const origin = new URL(c.req.url).origin;
   const db = getDatabase();
@@ -124,6 +124,9 @@ export const handler = async (
   }
 
   const existing = (snap.val() ?? {}) as Record<string, any>;
+  if (existing.userId && existing.userId !== userId) {
+    return unauthorizedResponse(c, "You are not the owner of this post");
+  }
 
   const now = Date.now();
 

@@ -10,7 +10,6 @@ import { isPathMatch } from "./src/utils/path";
 import { cors } from "hono/cors";
 import { firebaseAuthRouter } from "./src/features/auth/endpoints/firebase-login";
 import { authGuard } from "./src/features/auth/auth.guard";
-import { MemorySessionStore } from "./src/features/auth/session.store";
 import { getCurrentUserId } from "./src/features/auth/current-user";
 import { testUiRouter } from "./src/test-ui";
 import { devAuthRouter } from "./src/features/auth/dev/firebase-login";
@@ -31,7 +30,6 @@ admin.initializeApp({
 const app = new OpenAPIHono<Env>({
   defaultHook: zodErrorMiddleware,
 });
-const store = new MemorySessionStore();
 
 // MIDDLEWARE //
 app.use(logger());
@@ -70,7 +68,7 @@ app.use((c, next) => {
     allowMethods: ["POST", "GET", "DELETE", "PATCH", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
-    credentials: true,
+    credentials: false,
   });
   return corsMiddleware(c, next);
 });
@@ -83,7 +81,7 @@ app.use((c, next) => {
 // });
 app.use(
   "/*",
-  authGuard(store, {
+  authGuard({
     excludePaths: [
       "/",
       "/auth/firebase/login",
@@ -93,7 +91,7 @@ app.use(
   }),
 );
 
-app.route("/auth/firebase", firebaseAuthRouter(store));
+app.route("/auth/firebase", firebaseAuthRouter());
 app.route("/auth/dev", devAuthRouter());
 app.get("/me", (c) => {
   const userId = getCurrentUserId(c);
