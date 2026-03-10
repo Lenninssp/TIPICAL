@@ -31,7 +31,7 @@ struct ContentView: View {
                 } else if auth.currentUser == nil {
                     AuthGate()
                 }else {
-                    HomePageView()
+                    MenuBarView()
                         
                 }
             }
