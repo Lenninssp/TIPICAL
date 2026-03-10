@@ -14,7 +14,6 @@ final class PostService {
     private let backendBaseURL = APIConfiguration.baseURL
     private let tokenStore = TokenStore.shared
 
-    // MARK: - Debug helpers
 
     private func logRequest(_ request: URLRequest, name: String) {
         print("========== \(name) REQUEST ==========")
@@ -85,7 +84,6 @@ final class PostService {
         return .success(request)
     }
 
-    // MARK: - Fetch posts
 
     func fetchPosts(
         limit: Int = 20,
@@ -141,7 +139,6 @@ final class PostService {
         }.resume()
     }
 
-    // MARK: - Fetch single post
 
     func fetchPost(
         postId: String,
@@ -191,7 +188,6 @@ final class PostService {
         }.resume()
     }
 
-    // MARK: - Create post
 
     func createPost(
         title: String,
@@ -268,7 +264,6 @@ final class PostService {
         }.resume()
     }
 
-    // MARK: - Update post
 
     func updatePost(
         postId: String,
@@ -346,7 +341,6 @@ final class PostService {
         }.resume()
     }
 
-    // MARK: - Delete post
 
     func deletePost(
         postId: String,
