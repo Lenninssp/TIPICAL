@@ -3,7 +3,7 @@ backend/tipical-bd8e7-firebase-adminsdk-fbsvc-b0a76b6eb9.json
 GoogleService-Info.plist
 
 
-
+.DS_Store
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
