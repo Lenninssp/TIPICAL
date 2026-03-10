@@ -226,6 +226,10 @@ struct CreatePostView: View {
             title: title,
             description: bodyText,
             archived: false
+//            hidden: false,
+//             imageData: imageData,
+//             latitude: selectedCoordinate?.latitude,
+//             longitude: selectedCoordinate?.longitude
         ) { result in
             DispatchQueue.main.async {
                 switch result {
