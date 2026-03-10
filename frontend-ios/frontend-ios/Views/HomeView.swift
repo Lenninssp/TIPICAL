@@ -47,6 +47,9 @@ struct HomeView: View {
                 }
                 .padding()
             }
+            .refreshable {
+                await feedViewModel.refreshPosts()
+            }
         }
         .onAppear {
             if feedViewModel.feedPosts.isEmpty {
