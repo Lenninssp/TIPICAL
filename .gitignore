@@ -66,3 +66,8 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+.idea/modules.xml
+.idea/tipical.iml
+.idea/vcs.xml
+.idea/inspectionProfiles/Project_Default.xml
+frontend-ios/.DS_Store
