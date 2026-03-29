@@ -13,4 +13,5 @@ export const PostTable = sqliteTable('posts', {
   latitude: real('latitude'),
   longitude: real('longitude'),
   imageUrl: text('imageUrl'),
+  imagePath: text('imagePath'),
 });

@@ -10,6 +10,7 @@ export const CreatePostSchema = createInsertSchema(PostTable, {
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   imageUrl: z.string().optional(),
+  imagePath: z.string().optional(),
 }).omit({
   id: true,
   ownerId: true,
@@ -34,6 +35,7 @@ export const PostSchema = z
       latitude: 40.7128,
       longitude: -74.006,
       imageUrl: "https://example.com/image.jpg",
+      imagePath: "posts/image123.jpg",
     },
   })
   .openapi("Post");

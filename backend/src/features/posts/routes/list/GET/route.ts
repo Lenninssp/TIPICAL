@@ -160,7 +160,7 @@ export const handler = async (
 
   if (query.hasImage) {
     const hasImageBool = query.hasImage === "true";
-    posts = posts.filter((p) => Boolean(p.record?.image?.url) === hasImageBool);
+    posts = posts.filter((p) => Boolean(p.record?.imageUrl || p.record?.imagePath) === hasImageBool);
   }
 
   posts.sort((a, b) => (a.record.createdAt ?? 0) - (b.record.createdAt ?? 0));
