@@ -5,6 +5,7 @@ import {handler as getPostHandler, route as getPostRoute } from './routes/GET/ro
 import {handler as getPostListHandler, route as getPostListRoute} from './routes/list/GET/route'
 import {handler as patchPostHandler, route as patchPostRoute} from './routes/PATCH/route'
 import {handler as deletePostHandler, route as deletepostRoute} from './routes/DELETE/route'
+import {handler as uploadPostHandler, route as uploadPostRoute} from './routes/upload/POST/route'
 
 export default function (app: OpenAPIHono<Env>) {
   app.openapi(postPostRoute, postPostHandler);
@@ -12,4 +13,5 @@ export default function (app: OpenAPIHono<Env>) {
   app.openapi(getPostListRoute, getPostListHandler);
   app.openapi(patchPostRoute, patchPostHandler);
   app.openapi(deletepostRoute, deletePostHandler)
+  app.openapi(uploadPostRoute, uploadPostHandler)
 }
