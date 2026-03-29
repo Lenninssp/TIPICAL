@@ -21,3 +21,16 @@ export async function uploadPostImage(buffer: Buffer, mimeType: string): Promise
 
   return { imageUrl: url, imagePath };
 }
+
+export async function deletePostImage(imagePath: string): Promise<void> {
+  const bucket = getStorage().bucket();
+  const file = bucket.file(imagePath);
+  try {
+    await file.delete();
+  } catch (err: unknown) {
+    // If the file doesn't exist, we can ignore the error for cleanup purposes
+    if (err && typeof err === 'object' && 'code' in err && err.code !== 404) {
+      throw err;
+    }
+  }
+}
