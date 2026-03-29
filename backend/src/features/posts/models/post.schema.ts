@@ -4,11 +4,11 @@ import z from "zod";
 
 export const SelectPostSchema = createSelectSchema(PostTable);
 
-export const CreatePostSchema = createInsertSchema(PostTable, {
+const BasePostInputSchema = createInsertSchema(PostTable, {
   title: z.string().min(1).trim(),
   description: z.string().min(1),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   imageUrl: z.string().optional(),
   imagePath: z.string().optional(),
 }).omit({
@@ -19,7 +19,23 @@ export const CreatePostSchema = createInsertSchema(PostTable, {
   archived: true,
 });
 
-export const UpdatePostSchema = CreatePostSchema.partial();
+const coordinateRefinement = (data: { latitude?: number; longitude?: number }) =>
+  (data.latitude === undefined) === (data.longitude === undefined);
+
+const coordinateRefinementError = {
+  message: "Both latitude and longitude must be provided together, or both must be omitted.",
+  path: ["latitude"],
+};
+
+export const CreatePostSchema = BasePostInputSchema.refine(
+  coordinateRefinement,
+  coordinateRefinementError,
+);
+
+export const UpdatePostSchema = BasePostInputSchema.partial().refine(
+  coordinateRefinement,
+  coordinateRefinementError,
+);
 
 export const PostSchema = z
   .object(SelectPostSchema.shape)
