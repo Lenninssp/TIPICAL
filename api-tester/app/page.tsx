@@ -19,6 +19,9 @@ export default function Home() {
   const [commentFields, setCommentFields] = useState("");
   const [commentPostIdFilter, setCommentPostIdFilter] = useState("");
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePathToDelete, setImagePathToDelete] = useState("");
+
   const [createCommentForm, setCreateCommentForm] = useState({
     postId: "",
     comment: "",
@@ -34,7 +37,10 @@ export default function Home() {
     description: "Created from Next tester",
     archived: false,
     userId: "",
+    latitude: "",
+    longitude: "",
     imageUrl: "",
+    imagePath: "",
   });
 
   const [patchProfileForm, setPatchProfileForm] = useState({
@@ -50,7 +56,10 @@ export default function Home() {
     title: "",
     description: "",
     archived: "",
+    latitude: "",
+    longitude: "",
     imageUrl: "",
+    imagePath: "",
   });
 
   async function firebaseLogin() {
@@ -165,6 +174,40 @@ async function devLogin() {
     await runRequest(`${API}/posts?limit=5`);
   }
 
+  async function uploadImage() {
+    if (!selectedFile) {
+      setOutput("Select a file first");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
+    const res = await runRequest(`${API}/posts/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (res?.data?.attributes) {
+      const { imageUrl, imagePath } = res.data.attributes;
+      setCreatePostForm(prev => ({ ...prev, imageUrl, imagePath }));
+      setPatchPostForm(prev => ({ ...prev, imageUrl, imagePath }));
+    }
+  }
+
+  async function deleteImage() {
+    if (!imagePathToDelete.trim()) {
+      setOutput("Enter image path to delete");
+      return;
+    }
+
+    await runRequest(`${API}/posts/upload`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imagePath: imagePathToDelete.trim() }),
+    });
+  }
+
   async function createPost() {
     const body: Record<string, any> = {
       title: createPostForm.title,
@@ -176,10 +219,16 @@ async function devLogin() {
       body.userId = createPostForm.userId.trim();
     }
 
+    if (createPostForm.latitude.trim() && createPostForm.longitude.trim()) {
+      body.latitude = Number(createPostForm.latitude);
+      body.longitude = Number(createPostForm.longitude);
+    }
+
     if (createPostForm.imageUrl.trim()) {
-      body.image = {
-        url: createPostForm.imageUrl.trim(),
-      };
+      body.imageUrl = createPostForm.imageUrl.trim();
+    }
+    if (createPostForm.imagePath.trim()) {
+      body.imagePath = createPostForm.imagePath.trim();
     }
 
     await runRequest(`${API}/posts`, {
@@ -204,10 +253,16 @@ async function devLogin() {
     if (patchPostForm.archived === "true") body.archived = true;
     if (patchPostForm.archived === "false") body.archived = false;
 
+    if (patchPostForm.latitude.trim() && patchPostForm.longitude.trim()) {
+      body.latitude = Number(patchPostForm.latitude);
+      body.longitude = Number(patchPostForm.longitude);
+    }
+
     if (patchPostForm.imageUrl.trim()) {
-      body.image = {
-        url: patchPostForm.imageUrl.trim(),
-      };
+      body.imageUrl = patchPostForm.imageUrl.trim();
+    }
+    if (patchPostForm.imagePath.trim()) {
+      body.imagePath = patchPostForm.imagePath.trim();
     }
 
     await runRequest(`${API}/posts/${postId}`, {
@@ -512,6 +567,37 @@ async function logout() {
         </div>
       </div>
 
+      {sectionStyle("Media Upload / Cleanup")}
+      <div style={cardStyle}>
+        <div style={grid2Style}>
+          <input
+            type="file"
+            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+            style={inputStyle}
+          />
+          <input
+            placeholder="imagePath to delete"
+            value={imagePathToDelete}
+            onChange={(e) => setImagePathToDelete(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            className="cursor-pointer bg-blue-300 rounded-xl p-3 font-black text-black"
+            onClick={uploadImage}
+          >
+            POST /posts/upload (Binary)
+          </button>
+          <button
+            className="cursor-pointer bg-red-300 rounded-xl p-3 font-black text-black"
+            onClick={deleteImage}
+          >
+            DELETE /posts/upload
+          </button>
+        </div>
+      </div>
+
       {sectionStyle("Posts")}
       <div style={cardStyle}>
         <div style={grid2Style}>
@@ -535,21 +621,48 @@ async function logout() {
             style={inputStyle}
           />
           <input
-            placeholder="userId (optional)"
-            value={createPostForm.userId}
+            placeholder="latitude (-90 to 90)"
+            value={createPostForm.latitude}
             onChange={(e) =>
-              setCreatePostForm((prev) => ({ ...prev, userId: e.target.value }))
+              setCreatePostForm((prev) => ({ ...prev, latitude: e.target.value }))
             }
             style={inputStyle}
           />
           <input
-            placeholder="image url (optional)"
+            placeholder="longitude (-180 to 180)"
+            value={createPostForm.longitude}
+            onChange={(e) =>
+              setCreatePostForm((prev) => ({ ...prev, longitude: e.target.value }))
+            }
+            style={inputStyle}
+          />
+          <input
+            placeholder="imageUrl (from upload)"
             value={createPostForm.imageUrl}
             onChange={(e) =>
               setCreatePostForm((prev) => ({
                 ...prev,
                 imageUrl: e.target.value,
               }))
+            }
+            style={inputStyle}
+          />
+          <input
+            placeholder="imagePath (from upload)"
+            value={createPostForm.imagePath}
+            onChange={(e) =>
+              setCreatePostForm((prev) => ({
+                ...prev,
+                imagePath: e.target.value,
+              }))
+            }
+            style={inputStyle}
+          />
+          <input
+            placeholder="userId (optional)"
+            value={createPostForm.userId}
+            onChange={(e) =>
+              setCreatePostForm((prev) => ({ ...prev, userId: e.target.value }))
             }
             style={inputStyle}
           />
@@ -615,23 +728,50 @@ async function logout() {
             style={inputStyle}
           />
           <input
+            placeholder="new latitude"
+            value={patchPostForm.latitude}
+            onChange={(e) =>
+              setPatchPostForm((prev) => ({ ...prev, latitude: e.target.value }))
+            }
+            style={inputStyle}
+          />
+          <input
+            placeholder="new longitude"
+            value={patchPostForm.longitude}
+            onChange={(e) =>
+              setPatchPostForm((prev) => ({ ...prev, longitude: e.target.value }))
+            }
+            style={inputStyle}
+          />
+          <input
+            placeholder="new image URL"
+            value={patchPostForm.imageUrl}
+            onChange={(e) =>
+              setPatchPostForm((prev) => ({
+                ...prev,
+                imageUrl: e.target.value,
+              }))
+            }
+            style={inputStyle}
+          />
+          <input
+            placeholder="new image Path"
+            value={patchPostForm.imagePath}
+            onChange={(e) =>
+              setPatchPostForm((prev) => ({
+                ...prev,
+                imagePath: e.target.value,
+              }))
+            }
+            style={inputStyle}
+          />
+          <input
             placeholder='archived: "true" or "false"'
             value={patchPostForm.archived}
             onChange={(e) =>
               setPatchPostForm((prev) => ({
                 ...prev,
                 archived: e.target.value,
-              }))
-            }
-            style={inputStyle}
-          />
-          <input
-            placeholder="new image url"
-            value={patchPostForm.imageUrl}
-            onChange={(e) =>
-              setPatchPostForm((prev) => ({
-                ...prev,
-                imageUrl: e.target.value,
               }))
             }
             style={inputStyle}
