@@ -25,6 +25,7 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://tipical-bd8e7-default-rtdb.firebaseio.com/",
   projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: "gs://tipical-bd8e7.firebasestorage.app",
 });
 
 const app = new OpenAPIHono<Env>({

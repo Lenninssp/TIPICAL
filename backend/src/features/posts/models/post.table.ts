@@ -12,4 +12,5 @@ export const PostTable = sqliteTable('posts', {
   archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
   latitude: real('latitude'),
   longitude: real('longitude'),
+  imageUrl: text('imageUrl'),
 });

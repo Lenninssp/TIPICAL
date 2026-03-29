@@ -7,14 +7,15 @@ export const SelectPostSchema = createSelectSchema(PostTable);
 export const CreatePostSchema = createInsertSchema(PostTable, {
   title: z.string().min(1).trim(),
   description: z.string().min(1),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  imageUrl: z.string().optional(),
 }).omit({
   id: true,
   ownerId: true,
   createdAt: true,
   editedAt: true,
   archived: true,
-  latitude: true,
-  longitude: true,
 });
 
 export const UpdatePostSchema = CreatePostSchema.partial();
@@ -32,6 +33,7 @@ export const PostSchema = z
       archived: false,
       latitude: 40.7128,
       longitude: -74.006,
+      imageUrl: "https://example.com/image.jpg",
     },
   })
   .openapi("Post");

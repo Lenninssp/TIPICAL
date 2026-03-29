@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-const API = process.env.NEXT_PUBLIC_TIPICAL_API_BASE_URL ?? "";
+const API = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
 export default function Home() {
   const [link, setLink] = useState(API);
