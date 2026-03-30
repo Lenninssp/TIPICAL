@@ -85,3 +85,28 @@ Posts store optional `latitude` and `longitude`. The API provides raw coordinate
     ```bash
     bun x tsc --noEmit
     ```
+
+
+
+
+how to build project in docker 
+
+```bash
+docker login
+docker buildx create --use --name multiarch || docker buildx use multiarch
+docker buildx inspect --bootstrap
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t lenninssp/bun-auth-api:latest \
+  --push \
+  .
+```
+
+
+then in vps
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose logs -f
+```
