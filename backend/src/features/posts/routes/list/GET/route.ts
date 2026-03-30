@@ -170,14 +170,32 @@ export const handler = async (
 
   const self = `${origin}/${entityType}${buildUrlQueryString(query)}`;
 
-  return c.json<z.infer<typeof ResponseSchema>, 200>({
-    data: posts.map((post) => ({
+  const likesSnap = await db.ref("post_likes").get();
+  const allLikes = (likesSnap.val() ?? {}) as Record<string, any>;
+  const likesArray = Object.values(allLikes);
+
+  const enrichedPosts = posts.map((post) => {
+    const postLikes = likesArray.filter((l) => l.postId === post.id);
+    const likeCount = postLikes.length;
+    const likedByCurrentUser = postLikes.some((l) => l.userId === userId);
+
+    const attributes = {
+      ...post.record,
+      likeCount,
+      likedByCurrentUser,
+    };
+
+    return {
       id: post.id,
       type: entityType,
-      attributes: fields ? pickObjectProperties(post.record, fields.split(',')) : post.record,
+      attributes: fields ? pickObjectProperties(attributes, fields.split(',')) : attributes,
       links: {
         self: `${origin}/${entityType}/${post.id}`,
       },
-    })),
+    };
+  });
+
+  return c.json<z.infer<typeof ResponseSchema>, 200>({
+    data: enrichedPosts,
   });
 };

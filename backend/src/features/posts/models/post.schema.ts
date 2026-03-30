@@ -38,7 +38,11 @@ export const UpdatePostSchema = BasePostInputSchema.partial().refine(
 );
 
 export const PostSchema = z
-  .object(SelectPostSchema.shape)
+  .object({
+    ...SelectPostSchema.shape,
+    likeCount: z.number().default(0),
+    likedByCurrentUser: z.boolean().default(false),
+  })
   .openapi({
     example: {
       id: "123e4567-e89b-12d3-a456-426614174000",
@@ -52,6 +56,8 @@ export const PostSchema = z
       longitude: -74.006,
       imageUrl: "https://example.com/image.jpg",
       imagePath: "posts/image123.jpg",
+      likeCount: 10,
+      likedByCurrentUser: true,
     },
   })
   .openapi("Post");

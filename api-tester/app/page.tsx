@@ -18,6 +18,7 @@ export default function Home() {
   const [commentId, setCommentId] = useState("");
   const [commentFields, setCommentFields] = useState("");
   const [commentPostIdFilter, setCommentPostIdFilter] = useState("");
+  const [likePostId, setLikePostId] = useState("");
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePathToDelete, setImagePathToDelete] = useState("");
@@ -380,6 +381,28 @@ async function logout() {
     }
 
     await runRequest(`${API}/comments/${commentId.trim()}`, {
+      method: "DELETE",
+    });
+  }
+
+  async function likePost() {
+    if (!likePostId.trim()) {
+      setOutput("Missing postId for like");
+      return;
+    }
+    await runRequest(`${API}/post_likes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId: likePostId.trim() }),
+    });
+  }
+
+  async function unlikePost() {
+    if (!likePostId.trim()) {
+      setOutput("Missing postId for unlike");
+      return;
+    }
+    await runRequest(`${API}/post_likes/${likePostId.trim()}`, {
       method: "DELETE",
     });
   }
@@ -929,6 +952,30 @@ async function logout() {
               DELETE /comments/:id
             </button>
           </div>
+        </div>
+      </div>
+
+      {sectionStyle("Likes")}
+      <div style={cardStyle}>
+        <input
+          placeholder="post id to like/unlike"
+          value={likePostId}
+          onChange={(e) => setLikePostId(e.target.value)}
+          style={inputStyle}
+        />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            className="cursor-pointer bg-red-400 rounded-xl p-3 font-black text-white"
+            onClick={likePost}
+          >
+            POST /post_likes (Like)
+          </button>
+          <button
+            className="cursor-pointer bg-gray-500 rounded-xl p-3 font-black text-white"
+            onClick={unlikePost}
+          >
+            DELETE /post_likes/:postId (Unlike)
+          </button>
         </div>
       </div>
 
