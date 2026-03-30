@@ -1,6 +1,5 @@
 import z from "zod";
 import {
-  CreatePostSchema,
   PostSchema,
   UpdatePostSchema,
 } from "../../models/post.schema";
@@ -20,6 +19,7 @@ import { getDatabase } from "firebase-admin/database";
 import { pickObjectProperties } from "../../../../utils/object";
 import { buildUrlQueryString } from "../../../../utils/url";
 import { getCurrentUserId } from "../../../auth/current-user";
+import { deletePostImage } from "../../../shared/lib/firebase-storage";
 
 const entityType = "posts";
 
@@ -123,27 +123,43 @@ export const handler = async (
     return notFoundResponse(c, "Post not found");
   }
 
-  const existing = (snap.val() ?? {}) as Record<string, any>;
+  const existing = (snap.val() ?? {}) as Record<string, unknown>;
   if (existing.userId && existing.userId !== userId) {
     return unauthorizedResponse(c, "You are not the owner of this post");
   }
 
   const now = Date.now();
 
-  const patch: Record<string, any> = {};
+  const patch: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(body)) {
     if (v !== undefined) patch[k] = v;
   }
 
-  delete patch.createdAt;
-  delete patch.updatedAt;
-  delete patch.userId;
+  // Handle image replacement (Ticket 9)
+  if (patch.imagePath !== undefined && patch.imagePath !== existing.imagePath) {
+    if (typeof existing.imagePath === "string" && existing.imagePath.trim() !== "") {
+      try {
+        await deletePostImage(existing.imagePath);
+      } catch (err: unknown) {
+        console.error("Failed to delete old image during update:", err);
+      }
+    }
+  }
 
-  patch.updatedAt = now;
+  // Define a typed version of the update object
+  const updatePayload: Record<string, unknown> = {
+    ...patch,
+    updatedAt: now,
+    editedAt: now,
+  };
 
-  await postRef.update(patch);
+  // Ensure internal fields are not overwritten by the patch
+  delete updatePayload.createdAt;
+  delete updatePayload.userId;
 
-  const updated = { ...existing, ...patch };
+  await postRef.update(updatePayload);
+
+  const updated = { ...existing, ...updatePayload };
 
   const fieldsRaw =
     typeof query?.fields === "string" ? String(query.fields) : undefined;
@@ -168,15 +184,3 @@ export const handler = async (
     },
   });
 };
-
-/**
-
-
-curl -X PATCH "http://localhost:3000/posts/<ID_HERE>" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"TEST Updated title","archived":true}'
-
-  curl -X PATCH "http://localhost:3000/posts/-OkxmZ_UJnNGiNDMDraS" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"TEST Updated title", "description":"I want to play kirby, hes a cute little pink shit","archived":true}'
- */

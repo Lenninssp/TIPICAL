@@ -7,6 +7,7 @@ import { notFoundResponse, NotFoundResponseSchema } from "../../../shared/respon
 import type { Context, Env } from "hono";
 import { getDatabase } from "firebase-admin/database";
 import { getCurrentUserId } from "../../../auth/current-user";
+import { deletePostImage } from "../../../shared/lib/firebase-storage";
 
 const entityType = "posts";
 
@@ -90,9 +91,19 @@ export const handler = async (
     return notFoundResponse(c, "The post doesn't exist");
   }
 
-  const existing = (snap.val() ?? {}) as Record<string, any>;
+  const existing = (snap.val() ?? {}) as Record<string, unknown>;
   if (existing.userId && existing.userId !== userId) {
     return unauthorizedResponse(c, "You are not the owner of this post");
+  }
+
+  // Delete image from storage if it exists (Ticket 8)
+  if (typeof existing.imagePath === "string" && existing.imagePath.trim() !== "") {
+    try {
+      await deletePostImage(existing.imagePath);
+    } catch (err: unknown) {
+      console.error("Failed to delete image during post deletion:", err);
+      // We continue with post deletion even if image deletion fails.
+    }
   }
 
   await postRef.remove();
@@ -109,11 +120,3 @@ export const handler = async (
   })
 
 };
-
-/**
-curl -X DELETE "http://localhost:3000/posts/<ID_HERE>"
-
-curl -X DELETE "http://localhost:3000/posts/-OkxmZ_UJnNGiNDMDraS"
-
-
- */

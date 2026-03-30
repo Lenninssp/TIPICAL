@@ -109,16 +109,29 @@ export const handler = async (
   const record = snap.val();
   const origin = new URL(c.req.url).origin;
 
+  const allLikesSnap = await db.ref("post_likes").get();
+  const allLikes = (allLikesSnap.val() ?? {}) as Record<string, any>;
+  const likesArray = Object.values(allLikes).filter((l) => l.postId === id);
+  
+  const likeCount = likesArray.length;
+  const likedByCurrentUser = likesArray.some((l) => l.userId === userId);
+
+  const enrichedAttributes = {
+    ...record,
+    likeCount,
+    likedByCurrentUser,
+  };
+
   return c.json<z.infer<typeof ResponseSchema>, 200>({
     data: {
       id,
       type: entityType,
       attributes: query.fields
         ? pickObjectProperties(
-            record,
+            enrichedAttributes,
             query.fields.split(",").map((field) => field.trim()),
           )
-        : record,
+        : enrichedAttributes,
       links: {
         self: `${origin}/${entityType}/${id}`,
       },

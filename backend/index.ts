@@ -11,7 +11,6 @@ import { cors } from "hono/cors";
 import { firebaseAuthRouter } from "./src/features/auth/endpoints/firebase-login";
 import { authGuard } from "./src/features/auth/auth.guard";
 import { getCurrentUserId } from "./src/features/auth/current-user";
-import { testUiRouter } from "./src/test-ui";
 import { devAuthRouter } from "./src/features/auth/dev/firebase-login";
 import serviceAccount from "./tipical-bd8e7-firebase-adminsdk-fbsvc-b0a76b6eb9.json" with { type: "json" };
 
@@ -25,6 +24,7 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://tipical-bd8e7-default-rtdb.firebaseio.com/",
   projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: "gs://tipical-bd8e7.firebasestorage.app",
 });
 
 const app = new OpenAPIHono<Env>({
@@ -36,19 +36,6 @@ app.use(logger());
 
 // Helmet like middleware
 app.use(secureHeaders());
-
-// Content Type Guard - allow JSON:API compliant content type only //
-app.use(async (c, next) => {
-  const excludePaths = ["/"];
-  if (
-    !isPathMatch(c.req.path, excludePaths) &&
-    !["GET", "OPTIONS", "DELETE"].includes(c.req.method) &&
-    c.req.header("Content-Type") !== "application/json"
-  ) {
-    return c.json({ error: "Unsupported media type" }, { status: 415 });
-  }
-  return next();
-});
 
 app.use((c, next) => {
   const corsMiddleware = cors({
@@ -72,6 +59,35 @@ app.use((c, next) => {
   });
   return corsMiddleware(c, next);
 });
+
+// Content Type Guard - allow JSON:API compliant content type only //
+app.use(async (c, next) => {
+  const contentType = c.req.header("Content-Type") || "";
+  const path = c.req.path;
+  const method = c.req.method;
+
+  if (["GET", "OPTIONS", "DELETE"].includes(method)) {
+    return next();
+  }
+
+  const isUploadRoute = path === "/posts/upload";
+  const isJson = contentType.startsWith("application/json");
+  const isMultipart = contentType.startsWith("multipart/form-data");
+
+  if (isUploadRoute) {
+    if (!isMultipart) {
+      return c.json({ error: "Upload endpoint requires multipart/form-data" }, 415);
+    }
+    return next();
+  }
+
+  if (!isJson) {
+    return c.json({ error: "Unsupported media type" }, 415);
+  }
+
+  return next();
+});
+
 
 // app.use((c, next) => {
 //   const csrfMiddleware = csrf({

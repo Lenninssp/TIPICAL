@@ -1,116 +1,112 @@
-# Bun API Deployment Workflow (Docker Hub + VPS + Nginx)
+# Tipical Backend
 
-Serve endpoint at:
-- https://lenninsabogal.online/tipical/
+A modern, type-safe API for the **Tipical** social platform, built with **Hono**, **Bun**, and **Firebase**.
 
----
+## 🚀 Tech Stack
 
-
-
-## One-time setup (VPS)
-
-### 1) Create app folder
-SSH into VPS:
-- mkdir -p ~/apps/bun-auth-api
-- cd ~/apps/bun-auth-api
-
-Put these files in this folder:
-- docker-compose.yml
-- .env (production secrets, not in git)
-
-### 2) docker-compose.yml (bind API only to localhost)
-Example:
-- ports:
-  - "127.0.0.1:3000:3000"
-
-This ensures only Nginx can reach the API publicly.
-
-### 3) Nginx routes /tipical/ to the container
-The /tipical/ location should proxy to localhost:3000 and strip the prefix.
-
-Key rule:
-- proxy_pass must have a trailing slash so /tipical/ is stripped:
-  - proxy_pass http://127.0.0.1:3000/;
-
-Reload Nginx after edits:
-- sudo nginx -t
-- sudo systemctl reload nginx
+- **Runtime:** [Bun](https://bun.sh/)
+- **Web Framework:** [Hono](https://hono.dev/) with [zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi)
+- **Validation:** [Zod](https://zod.dev/)
+- **Database:** Firebase Realtime Database
+- **Storage:** Firebase Cloud Storage
+- **Auth:** Firebase Authentication (via Hono middleware)
+- **Documentation:** Automated OpenAPI (Swagger) support
 
 ---
 
-## Repeatable release workflow (every deploy)
+## 🏗️ Project Structure
 
-### Step A) Develop locally
-- Make code changes
-- Run locally:
-  - bun run start
-  - (optional) bun test
-
-### Step B) Build + push Docker image (multi-arch)
-This avoids exec format error on amd64 VPS.
-
-One-time (first time only):
-- docker buildx create --use --name multiarch || docker buildx use multiarch
-- docker buildx inspect --bootstrap
-
-Every deploy (build + push):
-- docker buildx build --platform linux/amd64,linux/arm64 -t <DOCKERHUB_USER>/<IMAGE_NAME>:latest --push .
-
-Optional version tag:
-- docker buildx build --platform linux/amd64,linux/arm64 -t <DOCKERHUB_USER>/<IMAGE_NAME>:v1.0.0 --push .
-
-### Step C) Deploy on VPS (pull + restart)
-SSH into VPS:
-- cd ~/apps/bun-auth-api
-- docker compose pull
-- docker compose up -d
-- docker compose logs -f
-
-### Step D) Verify
-From anywhere:
-- curl -i https://lenninsabogal.online/tipical/
-
-Protected endpoint (expected 401 until login):
-- curl -i https://lenninsabogal.online/tipical/me
-
-Direct upstream check on VPS (should return OK):
-- curl -i http://127.0.0.1:3000/
+```text
+backend/
+├── src/
+│   ├── features/          # Domain-driven features (posts, auth, user, comments)
+│   │   ├── posts/         # Post management (CRUD, Media, Geo)
+│   │   ├── auth/          # Firebase token verification & session logic
+│   │   ├── comments/      # Comment threading
+│   │   └── user/          # User profiles
+│   ├── shared/            # Common models, schemas, and libraries
+│   ├── middleware/        # Global error handling & security
+│   └── utils/             # Helper functions (object, url, path)
+├── docs/                  # Detailed feature documentation
+├── index.ts               # App entry point & Firebase init
+└── package.json
+```
 
 ---
 
-## Troubleshooting
+## 🛠️ Key Features
 
-### 1) exec format error
-Cause:
-- image built for arm64, VPS is amd64 (or vice versa)
+### 🔐 Authentication
+The backend uses **Firebase Admin SDK** to verify `idToken` from the client. It supports a session-based flow where a Firebase token is exchanged for a JWT managed by the backend.
 
-Fix:
-- always build multi-arch:
-  - docker buildx build --platform linux/amd64,linux/arm64 ...
+### 📝 Posts & Media
+Supports rich posts with text, geographic coordinates, and images.
+- **Two-Step Creation:** Upload binary image first (`/posts/upload`), then create post with JSON metadata.
+- **Validation:** Strict coordinate range checks (-90 to 90 for latitude, -180 to 180 for longitude).
+- **Storage:** Automatic cascade deletion of images from Firebase Storage when a post is deleted.
 
-### 2) 502 Bad Gateway from Nginx
-Cause:
-- Nginx cannot reach upstream
-
-Check on VPS:
-- curl -i http://127.0.0.1:3000/
-- docker ps
-- sudo tail -n 80 /var/log/nginx/error.log
-
-### 3) Update did not apply
-Fix on VPS:
-- docker compose pull
-- docker compose up -d
-- docker compose logs -f
-- (optional) docker image prune -f
+### 📍 Location Handling
+Posts store optional `latitude` and `longitude`. The API provides raw coordinates for clients to visualize on interactive maps (e.g., Apple MapKit).
 
 ---
 
-## Secrets management
+## 📡 API Endpoints (Post Feature)
 
-- Keep real secrets in VPS file: ~/apps/bun-auth-api/.env
-- Keep template in repo: .env.example
-- Firebase private key in .env must preserve newlines:
-  - store with \\n in env
-  - backend code must convert:
-    - privateKeyRaw.replace(/\\n/g, "\n")
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/posts` | List posts with pagination & filters (`userId`, `hasImage`, `archived`) |
+| `POST` | `/posts` | Create a new post |
+| `GET` | `/posts/{id}` | Retrieve a single post |
+| `PATCH` | `/posts/{id}` | Update a post (with image replacement cleanup) |
+| `DELETE` | `/posts/{id}` | Delete post and its associated image |
+| `POST` | `/posts/upload` | Upload binary image to storage (returns path/URL) |
+| `DELETE` | `/posts/upload` | Manually delete an image by its path |
+
+---
+
+## 📖 Detailed Documentation
+
+- [Media & Location Flow](./docs/features/posts/media-location.md)
+- [Auth Flow](./src/features/auth/flow.txt)
+
+---
+
+## 🚦 Getting Started
+
+1.  **Install dependencies:**
+    ```bash
+    bun install
+    ```
+2.  **Run in development mode:**
+    ```bash
+    bun run dev
+    ```
+3.  **Run Type Check:**
+    ```bash
+    bun x tsc --noEmit
+    ```
+
+
+
+
+how to build project in docker 
+
+```bash
+docker login
+docker buildx create --use --name multiarch || docker buildx use multiarch
+docker buildx inspect --bootstrap
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t lenninssp/bun-auth-api:latest \
+  --push \
+  .
+```
+
+
+then in vps
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose logs -f
+```
