@@ -208,6 +208,14 @@ async function devLogin() {
     });
   }
 
+  async function getPost() {
+    if (!postId.trim()) {
+      setOutput("Missing postId");
+      return;
+    }
+    await runRequest(`${API}/posts/${postId.trim()}`);
+  }
+
   async function createPost() {
     const body: Record<string, any> = {
       title: createPostForm.title,
@@ -779,6 +787,12 @@ async function logout() {
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
+            onClick={getPost}
+          >
+            GET /posts/:id
+          </button>
           <button
             className="cursor-pointer bg-gray-300 rounded-xl p-3 font-black text-black"
             onClick={patchPost}
