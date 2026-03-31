@@ -137,6 +137,13 @@ struct PostView: View {
                             authorName: authorName,
                             authorUsername: authorUsername,
                             authorProfileImageURL: authorProfileImageURL,
+                            onLikeStateChanged: { liked, count in
+                                self.isLiked = liked
+                                self.likesCount = count
+                            },
+                            onCommentCountChanged: { count in
+                                self.commentsCount = count
+                            },
                             isFollowing: isFollowing,
                             isLiked: isLiked,
                             likesCount: likesCount,
@@ -178,6 +185,13 @@ struct PostView: View {
                         authorName: authorName,
                         authorUsername: authorUsername,
                         authorProfileImageURL: authorProfileImageURL,
+                        onLikeStateChanged: { liked, count in
+                            self.isLiked = liked
+                            self.likesCount = count
+                        },
+                        onCommentCountChanged: { count in
+                            self.commentsCount = count
+                        },
                         isFollowing: isFollowing,
                         isLiked: isLiked,
                         likesCount: likesCount,

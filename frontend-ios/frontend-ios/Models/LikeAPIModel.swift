@@ -12,6 +12,8 @@ struct LikeAttributes: Codable {
     let postId: String?
     let userId: String?
     let createdAt: Double?
+    let postTitle: String?
+    let postOwnerUserId: String?
 }
 
 struct LikeResponseItem: Codable, Identifiable {
