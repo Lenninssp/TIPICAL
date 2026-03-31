@@ -22,8 +22,13 @@ extension Post {
             description: apiItem.attributes.description ?? "",
             hidden: apiItem.attributes.archived ?? false,
             imageData: nil,
-            latitude: nil,
-            longitude: nil
+            imageUrl: apiItem.attributes.imageUrl,
+            imagePath: apiItem.attributes.imagePath,
+            latitude: apiItem.attributes.latitude,
+            longitude: apiItem.attributes.longitude,
+            likeCount: apiItem.attributes.likeCount ?? 0,
+            likedByCurrentUser: apiItem.attributes.likedByCurrentUser ?? false,
+            commentsCount: 0
         )
     }
 }

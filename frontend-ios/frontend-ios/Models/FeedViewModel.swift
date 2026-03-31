@@ -15,106 +15,13 @@ final class FeedViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     func loadPosts() {
-        PostService.shared.fetchPosts(limit: 20) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let fetchedPosts):
-                    let mappedPosts = fetchedPosts
-                        .map { Post(apiItem: $0) }
-                        .sorted { $0.creationDate > $1.creationDate }
-
-                    let userIds = mappedPosts.map { $0.userId }
-
-                    ProfileService.shared.fetchProfiles(userIds: userIds) { profileResult in
-                        DispatchQueue.main.async {
-                            switch profileResult {
-                            case .success(let profilesById):
-                                self.feedPosts = mappedPosts.map { post in
-                                    let summary = profilesById[post.userId]
-
-                                    return FeedPost(
-                                        id: post.id,
-                                        post: post,
-                                        authorName: summary?.authorName ?? summary?.email ?? post.userId,
-                                        authorUsername: summary?.authorUsername ?? summary?.email ?? post.userId,
-                                        authorProfileImageURL: summary?.authorProfileImageURL
-                                    )
-                                }
-                                self.errorMessage = nil
-
-                            case .failure(let error):
-                                self.feedPosts = mappedPosts.map { post in
-                                    FeedPost(
-                                        id: post.id,
-                                        post: post,
-                                        authorName: post.userId,
-                                        authorUsername: post.userId,
-                                        authorProfileImageURL: nil
-                                    )
-                                }
-                                self.errorMessage = error.localizedDescription
-                            }
-                        }
-                    }
-
-                case .failure(let error):
-                    self.errorMessage = error.localizedDescription
-                }
-            }
-        }
+        loadFeedPosts()
     }
 
     func refreshPosts() async {
         await withCheckedContinuation { continuation in
-            PostService.shared.fetchPosts(limit: 20) { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success(let fetchedPosts):
-                        let mappedPosts = fetchedPosts
-                            .map { Post(apiItem: $0) }
-                            .sorted { $0.creationDate > $1.creationDate }
-
-                        let userIds = mappedPosts.map { $0.userId }
-
-                        ProfileService.shared.fetchProfiles(userIds: userIds) { profileResult in
-                            DispatchQueue.main.async {
-                                switch profileResult {
-                                case .success(let profilesById):
-                                    self.feedPosts = mappedPosts.map { post in
-                                        let summary = profilesById[post.userId]
-
-                                        return FeedPost(
-                                            id: post.id,
-                                            post: post,
-                                            authorName: summary?.authorName ?? summary?.email ?? post.userId,
-                                            authorUsername: summary?.authorUsername ?? summary?.email ?? post.userId,
-                                            authorProfileImageURL: summary?.authorProfileImageURL
-                                        )
-                                    }
-                                    self.errorMessage = nil
-
-                                case .failure(let error):
-                                    self.feedPosts = mappedPosts.map { post in
-                                        FeedPost(
-                                            id: post.id,
-                                            post: post,
-                                            authorName: post.userId,
-                                            authorUsername: post.userId,
-                                            authorProfileImageURL: nil
-                                        )
-                                    }
-                                    self.errorMessage = error.localizedDescription
-                                }
-
-                                continuation.resume()
-                            }
-                        }
-
-                    case .failure(let error):
-                        self.errorMessage = error.localizedDescription
-                        continuation.resume()
-                    }
-                }
+            loadFeedPosts {
+                continuation.resume()
             }
         }
     }
@@ -155,6 +62,90 @@ final class FeedViewModel: ObservableObject {
                     self.errorMessage = error.localizedDescription
                 }
             }
+        }
+    }
+
+    private func loadFeedPosts(completion: (() -> Void)? = nil) {
+        PostService.shared.fetchPosts(limit: 20) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let fetchedPosts):
+                    self.enrichFeedPosts(from: fetchedPosts) { feedPosts, errorMessage in
+                        self.feedPosts = feedPosts
+                        self.errorMessage = errorMessage
+                        completion?()
+                    }
+
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                    completion?()
+                }
+            }
+        }
+    }
+
+    private func enrichFeedPosts(
+        from fetchedPosts: [PostResponseItem],
+        completion: @escaping ([FeedPost], String?) -> Void
+    ) {
+        let mappedPosts = fetchedPosts
+            .map { Post(apiItem: $0) }
+            .sorted { $0.creationDate > $1.creationDate }
+
+        let userIds = mappedPosts.map(\.userId)
+        let postIds = mappedPosts.map(\.id)
+
+        let group = DispatchGroup()
+        let stateQueue = DispatchQueue(label: "FeedViewModel.enrich.state")
+        var profilesById: [String: ProfileSummary] = [:]
+        var commentCounts: [String: Int] = [:]
+        var errors: [String] = []
+
+        group.enter()
+        ProfileService.shared.fetchProfiles(userIds: userIds) { result in
+            stateQueue.async {
+                switch result {
+                case .success(let profiles):
+                    profilesById = profiles
+                case .failure(let error):
+                    errors.append(error.localizedDescription)
+                }
+
+                group.leave()
+            }
+        }
+
+        group.enter()
+        CommentService.shared.fetchCommentCounts(postIds: postIds) { result in
+            stateQueue.async {
+                switch result {
+                case .success(let counts):
+                    commentCounts = counts
+                case .failure(let error):
+                    errors.append(error.localizedDescription)
+                }
+
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) {
+            let feedPosts = mappedPosts.map { post -> FeedPost in
+                var enrichedPost = post
+                enrichedPost.commentsCount = commentCounts[post.id] ?? 0
+
+                let summary = profilesById[post.userId]
+
+                return FeedPost(
+                    id: enrichedPost.id,
+                    post: enrichedPost,
+                    authorName: summary?.authorName ?? summary?.email ?? post.userId,
+                    authorUsername: summary?.authorUsername ?? summary?.email ?? post.userId,
+                    authorProfileImageURL: summary?.authorProfileImageURL
+                )
+            }
+
+            completion(feedPosts, errors.isEmpty ? nil : errors.joined(separator: "\n"))
         }
     }
 }
