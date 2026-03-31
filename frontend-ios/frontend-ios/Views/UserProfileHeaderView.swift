@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct UserProfileHeaderView: View {
-    let profileImageName: String
+    let profileImageURL: String?
     let username: String
+    let displayName: String
     let postsCount: Int
     let followersCount: String
     let followingCount: Int
@@ -19,15 +20,7 @@ struct UserProfileHeaderView: View {
         VStack(alignment: .leading, spacing: 16) {
             
             HStack(alignment: .top, spacing: 16) {
-                Image(profileImageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 90, height: 90)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                    )
+                profileImage
                 
                 Spacer()
                 
@@ -39,17 +32,58 @@ struct UserProfileHeaderView: View {
             }
             
             VStack(alignment: .leading, spacing: 6) {
-                Text(username)
+                Text(displayName)
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                 
-                Text(bio)
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.leading)
+                Text("@\(username)")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                
+                if !bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(bio)
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.leading)
+                }
             }
         }
         .padding(.horizontal)
+    }
+    
+    private var profileImage: some View {
+        Group {
+            if let profileImageURL,
+               let url = URL(string: profileImageURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundColor(.gray)
+                            .padding(8)
+                    }
+                }
+            } else {
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundColor(.gray)
+                    .padding(8)
+            }
+        }
+        .frame(width: 90, height: 90)
+        .background(Color(white: 0.18))
+        .clipShape(Circle())
+        .overlay(
+            Circle()
+                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+        )
     }
     
     private func profileStat(number: String, label: String) -> some View {
@@ -66,6 +100,20 @@ struct UserProfileHeaderView: View {
     }
 }
 
-//#Preview {
-//    UserProfileHeaderView()
-//}
+#Preview {
+    ZStack {
+        Color(white: 0.12)
+            .ignoresSafeArea()
+        
+        UserProfileHeaderView(
+            profileImageURL: nil,
+            username: "sofiaguerra",
+            displayName: "Sofia Guerra",
+            postsCount: 12,
+            followersCount: "254",
+            followingCount: 8,
+            bio: "Digital creator\n• Science & technology"
+        )
+        .padding(.top, 30)
+    }
+}

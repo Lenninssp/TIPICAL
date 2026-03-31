@@ -22,6 +22,13 @@ struct PostAttributes: Codable {
     let archived: Bool?
     let createdAt: Double?
     let updatedAt: Double?
+    let editedAt: Double?
+    let latitude: Double?
+    let longitude: Double?
+    let imageUrl: String?
+    let imagePath: String?
+    let likeCount: Int?
+    let likedByCurrentUser: Bool?
 }
 
 struct PostResponseItem: Codable, Identifiable {
@@ -34,10 +41,29 @@ struct CreatePostRequest: Encodable {
     let title: String
     let description: String
     let archived: Bool
+    let latitude: Double?
+    let longitude: Double?
+    let imageUrl: String?
+    let imagePath: String?
 }
 
 struct UpdatePostRequest: Encodable {
     let title: String?
     let description: String?
     let archived: Bool?
+    let latitude: Double?
+    let longitude: Double?
+    let imageUrl: String?
+    let imagePath: String?
+}
+
+struct UploadResponseAttributes: Codable {
+    let imageUrl: String
+    let imagePath: String
+}
+
+struct UploadResponseItem: Codable {
+    let id: String
+    let type: String
+    let attributes: UploadResponseAttributes
 }

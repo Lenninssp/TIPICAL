@@ -4,8 +4,6 @@
 //
 //  Created by Sofia Guerra on 2026-03-08.
 //
-
-
 import SwiftUI
 
 struct HomeView: View {
@@ -13,47 +11,51 @@ struct HomeView: View {
     @EnvironmentObject var feedViewModel: FeedViewModel
     
     var body: some View {
-        ZStack {
-            Color(white: 0.12)
-                .ignoresSafeArea()
-            
-            ScrollView {
-                HStack {
-                    //to fixx
-                    Image(.logo)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                    
-                    Text("TYPICAL")
-                        .bold()
-                        .font(.title2)
-                        .foregroundColor(.white)
-                }
+        NavigationStack {
+            ZStack {
+                Color(white: 0.12)
+                    .ignoresSafeArea()
                 
-                LazyVStack(spacing: 20) {
-                    ForEach(feedViewModel.feedPosts) { item in
-                        PostView(
-                            post: item.post,
-                            authorName: item.authorName,
-                            authorUsername: item.authorUsername,
-                            authorProfileImageURL: item.authorProfileImageURL,
-                            isFollowing: false,
-                            isLiked: false,
-                            likesCount: 0,
-                            commentsCount: 0
-                        )
+                ScrollView {
+                    HStack {
+                        Image(.logo)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 20, height: 20)
+                        
+                        Text("TYPICAL")
+                            .bold()
+                            .font(.title2)
+                            .foregroundColor(.white)
                     }
+                    .padding(.top, 8)
+                    
+                    LazyVStack(spacing: 20) {
+//                        Text("Posts count: \(feedViewModel.feedPosts.count)")
+//                            .foregroundColor(.white)
+                        ForEach(feedViewModel.feedPosts) { item in
+                            PostView(
+                                post: item.post,
+                                authorName: item.authorName,
+                                authorUsername: item.authorUsername,
+                                authorProfileImageURL: item.authorProfileImageURL,
+                                isFollowing: false,
+                                isLiked: false,
+                                likesCount: 0,
+                                commentsCount: 0
+                            )
+                        }
+                    }
+                    .padding()
                 }
-                .padding()
+                .refreshable {
+                    await feedViewModel.refreshPosts()
+                }
             }
-            .refreshable {
-                await feedViewModel.refreshPosts()
-            }
-        }
-        .onAppear {
-            if feedViewModel.feedPosts.isEmpty {
-                feedViewModel.loadPosts()
+            .onAppear {
+                if feedViewModel.feedPosts.isEmpty {
+                    feedViewModel.loadPosts()
+                }
             }
         }
     }
