@@ -194,6 +194,10 @@ final class PostService {
         title: String,
         description: String,
         archived: Bool = false,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        imageUrl: String? = nil,
+        imagePath: String? = nil,
         completion: @escaping (Result<PostResponseItem, Error>) -> Void
     ) {
         guard let url = URL(string: "\(backendBaseURL)/posts") else {
@@ -204,7 +208,11 @@ final class PostService {
         let payload = CreatePostRequest(
             title: title,
             description: description,
-            archived: archived
+            archived: archived,
+            latitude: latitude,
+            longitude: longitude,
+            imageUrl: imageUrl,
+            imagePath: imagePath
         )
 
         let body: Data
@@ -271,6 +279,10 @@ final class PostService {
         title: String?,
         description: String?,
         archived: Bool?,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        imageUrl: String? = nil,
+        imagePath: String? = nil,
         completion: @escaping (Result<PostResponseItem, Error>) -> Void
     ) {
         guard let url = URL(string: "\(backendBaseURL)/posts/\(postId)") else {
@@ -281,7 +293,11 @@ final class PostService {
         let payload = UpdatePostRequest(
             title: title,
             description: description,
-            archived: archived
+            archived: archived,
+            latitude: latitude,
+            longitude: longitude,
+            imageUrl: imageUrl,
+            imagePath: imagePath
         )
 
         let body: Data
@@ -342,6 +358,68 @@ final class PostService {
         }.resume()
     }
 
+    func uploadImage(
+        imageData: Data,
+        fileName: String = "post.jpg",
+        mimeType: String = "image/jpeg",
+        completion: @escaping (Result<UploadResponseAttributes, Error>) -> Void
+    ) {
+        guard let url = URL(string: "\(backendBaseURL)/posts/upload") else {
+            return completion(.failure(SimpleError("Invalid upload URL")))
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        body.appendUTF8("--\(boundary)\r\n")
+        body.appendUTF8("Content-Disposition: form-data; name=\"image\"; filename=\"\(fileName)\"\r\n")
+        body.appendUTF8("Content-Type: \(mimeType)\r\n\r\n")
+        body.append(imageData)
+        body.appendUTF8("\r\n--\(boundary)--\r\n")
+
+        let request: URLRequest
+        switch authorizedRequest(
+            url: url,
+            method: "POST",
+            body: body,
+            contentType: "multipart/form-data; boundary=\(boundary)"
+        ) {
+        case .failure(let error):
+            return completion(.failure(error))
+        case .success(let built):
+            request = built
+        }
+
+        logRequest(request, name: "UPLOAD POST IMAGE")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            self.logResponse(data: data, response: response, error: error, name: "UPLOAD POST IMAGE")
+
+            if let error {
+                return completion(.failure(error))
+            }
+
+            guard let http = response as? HTTPURLResponse else {
+                return completion(.failure(SimpleError("Invalid response")))
+            }
+
+            guard (200...299).contains(http.statusCode) else {
+                let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "No body"
+                return completion(.failure(SimpleError("Upload image failed (\(http.statusCode)): \(body)")))
+            }
+
+            guard let data else {
+                return completion(.failure(SimpleError("Missing response data")))
+            }
+
+            do {
+                let decoded = try JSONDecoder().decode(APIResource<UploadResponseItem>.self, from: data)
+                completion(.success(decoded.data.attributes))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
 
     func deletePost(
         postId: String,
@@ -384,5 +462,12 @@ final class PostService {
             print("[PostService.deletePost] Delete succeeded for postId:", postId)
             completion(.success(()))
         }.resume()
+    }
+}
+
+private extension Data {
+    mutating func appendUTF8(_ string: String) {
+        guard let data = string.data(using: .utf8) else { return }
+        append(data)
     }
 }
