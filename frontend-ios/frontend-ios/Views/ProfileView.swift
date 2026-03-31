@@ -117,9 +117,9 @@ struct ProfileView: View {
                                                 authorUsername: feedPost.authorUsername,
                                                 authorProfileImageURL: feedPost.authorProfileImageURL,
                                                 isFollowing: true,
-                                                isLiked: false,
-                                                likesCount: 0,
-                                                commentsCount: 0
+                                                isLiked: feedPost.post.likedByCurrentUser,
+                                                likesCount: feedPost.post.likeCount,
+                                                commentsCount: feedPost.post.commentsCount
                                             )
                                         } label: {
                                             ProfilePostThumbnailView(post: feedPost.post)

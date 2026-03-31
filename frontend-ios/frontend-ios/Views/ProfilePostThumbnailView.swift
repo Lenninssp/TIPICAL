@@ -12,19 +12,7 @@ struct ProfilePostThumbnailView: View {
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            if let data = post.imageData,
-               let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 140)
-                    .frame(maxWidth: .infinity)
-                    .clipped()
-            } else {
-                Rectangle()
-                    .fill(Color(white: 0.15))
-                    .frame(height: 140)
-            }
+            thumbnailMedia
             
             LinearGradient(
                 colors: [
@@ -46,6 +34,52 @@ struct ProfilePostThumbnailView: View {
         }
         .frame(height: 140)
         .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    @ViewBuilder
+    private var thumbnailMedia: some View {
+        if let data = post.imageData,
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+
+        } else if let imageURL = post.imageRemoteURL {
+            AsyncImage(url: imageURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
+
+                case .failure:
+                    Rectangle()
+                        .fill(Color(white: 0.15))
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(.gray)
+                        )
+
+                default:
+                    Rectangle()
+                        .fill(Color(white: 0.15))
+                        .overlay(
+                            ProgressView()
+                                .tint(.white)
+                        )
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+
+        } else {
+            Rectangle()
+                .fill(Color(white: 0.15))
+        }
     }
 }
 

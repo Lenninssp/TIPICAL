@@ -40,9 +40,9 @@ struct HomeView: View {
                                 authorUsername: item.authorUsername,
                                 authorProfileImageURL: item.authorProfileImageURL,
                                 isFollowing: false,
-                                isLiked: false,
-                                likesCount: 0,
-                                commentsCount: 0
+                                isLiked: item.post.likedByCurrentUser,
+                                likesCount: item.post.likeCount,
+                                commentsCount: item.post.commentsCount
                             )
                         }
                     }

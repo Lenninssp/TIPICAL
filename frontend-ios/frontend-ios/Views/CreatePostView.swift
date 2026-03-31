@@ -21,6 +21,7 @@ struct CreatePostView: View {
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
+    @State private var uploadedImage: UploadResponseAttributes?
 
     @State private var showLinkField: Bool = false
     @State private var showMapPicker: Bool = false
@@ -198,7 +199,7 @@ struct CreatePostView: View {
                     .foregroundColor(.white)
             }
 
-            PhotosPicker(selection: $selectedPhotoItem, matching: .any(of: [.images, .videos])) {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                 Image(systemName: "photo.on.rectangle")
                     .font(.title2)
                     .foregroundColor(.white)
@@ -224,11 +225,16 @@ struct CreatePostView: View {
     }
 
     private func loadSelectedPhoto(from item: PhotosPickerItem?) async {
-        guard let item else { return }
+        guard let item else {
+            selectedImage = nil
+            uploadedImage = nil
+            return
+        }
 
         if let data = try? await item.loadTransferable(type: Data.self),
            let image = UIImage(data: data) {
             selectedImage = image
+            uploadedImage = nil
         }
     }
 
@@ -237,25 +243,62 @@ struct CreatePostView: View {
 
         isPublishing = true
         errorMessage = nil
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDescription = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let coordinate = selectedCoordinate
 
-        PostService.shared.createPost(
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-            description: bodyText.trimmingCharacters(in: .whitespacesAndNewlines),
-            archived: false
-        ) { result in
+        func submitPost(with upload: UploadResponseAttributes?) {
+            PostService.shared.createPost(
+                title: trimmedTitle,
+                description: trimmedDescription,
+                archived: false,
+                latitude: coordinate?.latitude,
+                longitude: coordinate?.longitude,
+                imageUrl: upload?.imageUrl,
+                imagePath: upload?.imagePath
+            ) { result in
+                DispatchQueue.main.async {
+                    self.isPublishing = false
+
+                    switch result {
+                    case .success(let createdPost):
+                        self.uploadedImage = upload
+                        feedViewModel.prependPost(createdPost)
+                        dismiss()
+
+                    case .failure(let error):
+                        print("Create post error:", error.localizedDescription)
+                        self.errorMessage = error.localizedDescription
+                    }
+                }
+            }
+        }
+
+        if let uploadedImage {
+            submitPost(with: uploadedImage)
+            return
+        }
+
+        guard let selectedImage else {
+            submitPost(with: nil)
+            return
+        }
+
+        guard let imageData = selectedImage.jpegData(compressionQuality: 0.85) else {
+            isPublishing = false
+            errorMessage = "Failed to prepare image for upload"
+            return
+        }
+
+        PostService.shared.uploadImage(imageData: imageData) { result in
             DispatchQueue.main.async {
-                self.isPublishing = false
-
                 switch result {
-                case .success(let createdPost):
-                    print("Created post:", createdPost)
-
-                    feedViewModel.prependPost(createdPost)
-
-                    dismiss()
+                case .success(let upload):
+                    self.uploadedImage = upload
+                    submitPost(with: upload)
 
                 case .failure(let error):
-                    print("Create post error:", error.localizedDescription)
+                    self.isPublishing = false
                     self.errorMessage = error.localizedDescription
                 }
             }

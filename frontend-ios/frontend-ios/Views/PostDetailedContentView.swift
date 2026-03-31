@@ -6,18 +6,21 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct PostDetailedContentView: View {
     let post: Post
     let authorName: String
     let authorUsername: String
     let authorProfileImageURL: String?
-    
+
     @Binding var isFollowing: Bool
     @Binding var isLiked: Bool
     @Binding var likesCount: Int
     @Binding var commentsCount: Int
-    
+
+    @State private var isUpdatingLike = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 12) {
@@ -31,12 +34,12 @@ struct PostDetailedContentView: View {
                 } label: {
                     HStack(alignment: .center, spacing: 12) {
                         profileImage
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(authorName)
                                 .font(.headline)
                                 .foregroundColor(.white)
-                            
+
                             Text("@\(authorName)")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
@@ -44,10 +47,9 @@ struct PostDetailedContentView: View {
                     }
                 }
                 .buttonStyle(.plain)
-           
-                
+
                 Spacer()
-                
+
                 if !isFollowing {
                     Button {
                         isFollowing = true
@@ -64,33 +66,30 @@ struct PostDetailedContentView: View {
                     .foregroundColor(.white)
                 }
             }
-            
+
             if !post.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(post.title)
                     .font(.title2.weight(.bold))
                     .foregroundColor(.white)
             }
-            
+
             if !post.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(post.description)
                     .font(.body)
                     .foregroundColor(.white)
             }
-            
-            if let image = postImage {
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 320)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
+
+            postMedia
+
+            if let coordinateText {
+                Label(coordinateText, systemImage: "mappin.and.ellipse")
+                    .font(.footnote)
+                    .foregroundColor(.gray)
             }
-            
+
             HStack(spacing: 20) {
                 Button {
-                    isLiked.toggle()
-                    likesCount += isLiked ? 1 : -1
+                    toggleLike()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: isLiked ? "heart.fill" : "heart")
@@ -99,7 +98,8 @@ struct PostDetailedContentView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(isLiked ? .red : .white)
                 }
-                
+                .disabled(isUpdatingLike)
+
                 HStack(spacing: 6) {
                     Image(systemName: "bubble.right")
                     Text("\(commentsCount)")
@@ -110,15 +110,59 @@ struct PostDetailedContentView: View {
             .padding(.top, 4)
         }
     }
-    
-    private var postImage: Image? {
-        guard let data = post.imageData,
-              let uiImage = UIImage(data: data) else {
+
+    @ViewBuilder
+    private var postMedia: some View {
+        if let data = post.imageData,
+           let uiImage = UIImage(data: data) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color.white.opacity(0.06))
+
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit() // ✅ prevents overflow
+                    .frame(maxWidth: .infinity, maxHeight: 300)
+            }
+            .frame(maxWidth: .infinity, maxHeight: 300)
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+
+        } else if let imageURL = post.imageRemoteURL {
+            AsyncImage(url: imageURL) { phase in
+                ZStack {
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(Color.white.opacity(0.06))
+
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit() // ✅ prevents overflow
+                            .frame(maxWidth: .infinity, maxHeight: 300)
+
+                    case .failure:
+                        Image(systemName: "photo")
+                            .foregroundColor(.gray)
+
+                    default:
+                        ProgressView()
+                            .tint(.white)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: 300)
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+        }
+    }
+
+    private var coordinateText: String? {
+        guard let coordinate = post.coordinate else {
             return nil
         }
-        return Image(uiImage: uiImage)
+
+        return String(format: "%.5f, %.5f", coordinate.latitude, coordinate.longitude)
     }
-    
+
     private var profileImage: some View {
         Group {
             if let urlString = authorProfileImageURL,
@@ -149,6 +193,35 @@ struct PostDetailedContentView: View {
         .background(Color(white: 0.18))
         .clipShape(Circle())
     }
+
+    private func toggleLike() {
+        guard !isUpdatingLike else { return }
+
+        let newLikedState = !isLiked
+        isUpdatingLike = true
+        isLiked = newLikedState
+        likesCount = max(0, likesCount + (newLikedState ? 1 : -1))
+
+        let completion: (Result<Void, Error>) -> Void = { result in
+            DispatchQueue.main.async {
+                self.isUpdatingLike = false
+
+                if case .failure(let error) = result {
+                    self.isLiked.toggle()
+                    self.likesCount = max(0, self.likesCount + (newLikedState ? -1 : 1))
+                    print("Like toggle failed:", error.localizedDescription)
+                }
+            }
+        }
+
+        if newLikedState {
+            LikeService.shared.likePost(postId: post.id) { result in
+                completion(result.map { _ in () })
+            }
+        } else {
+            LikeService.shared.unlikePost(postId: post.id, completion: completion)
+        }
+    }
 }
 
 #Preview {
@@ -156,7 +229,7 @@ struct PostDetailedContentView: View {
     @Previewable @State var isLiked = false
     @Previewable @State var likesCount = 12
     @Previewable @State var commentsCount = 4
-    
+
     let samplePost = Post(
         id: "1",
         userId: "user_1",
@@ -166,15 +239,20 @@ struct PostDetailedContentView: View {
         description: "This is a longer post body to preview how the detailed content view will look when it is opened from the feed or profile.",
         hidden: false,
         imageData: nil,
+        imageUrl: nil,
+        imagePath: nil,
         latitude: nil,
-        longitude: nil
+        longitude: nil,
+        likeCount: 12,
+        likedByCurrentUser: false,
+        commentsCount: 4
     )
-    
+
     NavigationStack {
         ZStack {
             Color(white: 0.12)
                 .ignoresSafeArea()
-            
+
             PostDetailedContentView(
                 post: samplePost,
                 authorName: "Sofia Guerra",

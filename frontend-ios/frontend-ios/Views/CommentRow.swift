@@ -12,14 +12,7 @@ struct CommentRow: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Circle()
-                .fill(Color.gray.opacity(0.45))
-                .frame(width: 42, height: 42)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .foregroundColor(.white)
-                        .font(.system(size: 16))
-                )
+            profileImage
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -40,5 +33,32 @@ struct CommentRow: View {
             
             Spacer()
         }
+    }
+
+    private var profileImage: some View {
+        Group {
+            if let urlString = comment.userProfileImageURL,
+               let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        Image(systemName: "person.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16))
+                    }
+                }
+            } else {
+                Image(systemName: "person.fill")
+                    .foregroundColor(.white)
+                    .font(.system(size: 16))
+            }
+        }
+        .frame(width: 42, height: 42)
+        .background(Color.gray.opacity(0.45))
+        .clipShape(Circle())
     }
 }

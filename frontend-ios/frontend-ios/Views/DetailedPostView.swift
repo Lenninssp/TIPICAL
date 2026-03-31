@@ -60,7 +60,11 @@ struct DetailedPostView: View {
                             .font(.title3.weight(.semibold))
                             .foregroundColor(.white)
                         
-                        CommentsView(postId: post.id ?? "", showsHeader: false)
+                        CommentsView(
+                            postId: post.id,
+                            showsHeader: false,
+                            onCountChanged: { commentsCount = $0 }
+                        )
                     }
                     .padding()
                 }

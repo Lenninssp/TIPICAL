@@ -4,10 +4,11 @@
 //
 //  Created by Sofia Guerra on 2026-03-08.
 //
-//
+
 import Foundation
 import SwiftUI
 import Photos
+import CoreLocation
 
 struct PostView: View {
     let post: Post
@@ -23,6 +24,7 @@ struct PostView: View {
 
     @State private var showMenuMessage = false
     @State private var menuMessage = ""
+    @State private var isUpdatingLike = false
 
     private let maxDescriptionLength = 120
 
@@ -93,7 +95,7 @@ struct PostView: View {
                 }
 
                 Menu {
-                    if post.imageData != nil {
+                    if post.imageData != nil || post.imageRemoteURL != nil {
                         Button {
                             downloadImage()
                         } label: {
@@ -149,14 +151,12 @@ struct PostView: View {
                 }
             }
 
-            if let image = postImage {
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 300)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
+            postMedia
+
+            if let coordinateText {
+                Label(coordinateText, systemImage: "mappin.and.ellipse")
+                    .font(.footnote)
+                    .foregroundColor(.gray)
             }
 
             HStack(spacing: 20) {
@@ -170,6 +170,7 @@ struct PostView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(isLiked ? .red : .white)
                 }
+                .disabled(isUpdatingLike)
 
                 NavigationLink {
                     DetailedPostView(
@@ -220,12 +221,55 @@ struct PostView: View {
         return post.description
     }
 
-    private var postImage: Image? {
-        guard let data = post.imageData,
-              let uiImage = UIImage(data: data) else {
+    @ViewBuilder
+    private var postMedia: some View {
+        if let data = post.imageData,
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: 300)
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+        } else if let imageURL = post.imageRemoteURL {
+            AsyncImage(url: imageURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFit()
+
+                case .failure:
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(Color.white.opacity(0.06))
+                        .frame(maxWidth: .infinity, maxHeight: 300)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(.gray)
+                        )
+
+                default:
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(Color.white.opacity(0.06))
+                        .frame(maxWidth: .infinity, maxHeight: 300)
+                        .overlay(
+                            ProgressView()
+                                .tint(.white)
+                        )
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(maxHeight: 300)
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+        }
+    }
+
+    private var coordinateText: String? {
+        guard let coordinate = post.coordinate else {
             return nil
         }
-        return Image(uiImage: uiImage)
+
+        return String(format: "%.5f, %.5f", coordinate.latitude, coordinate.longitude)
     }
 
     private var profileImage: some View {
@@ -264,8 +308,33 @@ struct PostView: View {
     }
 
     private func toggleLike() {
-        isLiked.toggle()
-        likesCount += isLiked ? 1 : -1
+        guard !isUpdatingLike else { return }
+
+        let newLikedState = !isLiked
+        isUpdatingLike = true
+        isLiked = newLikedState
+        likesCount = max(0, likesCount + (newLikedState ? 1 : -1))
+
+        let completion: (Result<Void, Error>) -> Void = { result in
+            DispatchQueue.main.async {
+                self.isUpdatingLike = false
+
+                if case .failure(let error) = result {
+                    self.isLiked.toggle()
+                    self.likesCount = max(0, self.likesCount + (newLikedState ? -1 : 1))
+                    self.menuMessage = error.localizedDescription
+                    self.showMenuMessage = true
+                }
+            }
+        }
+
+        if newLikedState {
+            LikeService.shared.likePost(postId: post.id) { result in
+                completion(result.map { _ in () })
+            }
+        } else {
+            LikeService.shared.unlikePost(postId: post.id, completion: completion)
+        }
     }
 
     private func copyText() {
@@ -288,15 +357,34 @@ struct PostView: View {
     }
 
     private func downloadImage() {
-        guard let data = post.imageData,
-              let uiImage = UIImage(data: data) else {
+        if let data = post.imageData,
+           let uiImage = UIImage(data: data) {
+            UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
+            menuMessage = "Image saved to Photos"
+            showMenuMessage = true
+            return
+        }
+
+        guard let imageURL = post.imageRemoteURL else {
             menuMessage = "No image available"
             showMenuMessage = true
             return
         }
 
-        UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
-        menuMessage = "Image saved to Photos"
-        showMenuMessage = true
+        URLSession.shared.dataTask(with: imageURL) { data, _, error in
+            guard let data, error == nil, let uiImage = UIImage(data: data) else {
+                DispatchQueue.main.async {
+                    self.menuMessage = "Failed to download image"
+                    self.showMenuMessage = true
+                }
+                return
+            }
+
+            UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
+            DispatchQueue.main.async {
+                self.menuMessage = "Image saved to Photos"
+                self.showMenuMessage = true
+            }
+        }.resume()
     }
 }
