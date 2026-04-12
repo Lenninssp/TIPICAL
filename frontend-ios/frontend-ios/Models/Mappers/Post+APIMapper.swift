@@ -28,7 +28,7 @@ extension Post {
             longitude: apiItem.attributes.longitude,
             likeCount: apiItem.attributes.likeCount ?? 0,
             likedByCurrentUser: apiItem.attributes.likedByCurrentUser ?? false,
-            commentsCount: 0
+            commentsCount: apiItem.attributes.commentCount ?? 0
         )
     }
 }

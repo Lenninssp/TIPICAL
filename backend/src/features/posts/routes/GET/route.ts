@@ -112,13 +112,19 @@ export const handler = async (
   const allLikesSnap = await db.ref("post_likes").get();
   const allLikes = (allLikesSnap.val() ?? {}) as Record<string, any>;
   const likesArray = Object.values(allLikes).filter((l) => l.postId === id);
-  
+
+  const allCommentsSnap = await db.ref("comments").get();
+  const allComments = (allCommentsSnap.val() ?? {}) as Record<string, any>;
+  const commentsArray = Object.values(allComments).filter((c) => c.postId === id);
+
   const likeCount = likesArray.length;
   const likedByCurrentUser = likesArray.some((l) => l.userId === userId);
+  const commentCount = commentsArray.length;
 
   const enrichedAttributes = {
     ...record,
     likeCount,
+    commentCount,
     likedByCurrentUser,
   };
 

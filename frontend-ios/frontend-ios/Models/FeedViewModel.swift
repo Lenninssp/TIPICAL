@@ -93,12 +93,10 @@ final class FeedViewModel: ObservableObject {
             .sorted { $0.creationDate > $1.creationDate }
 
         let userIds = mappedPosts.map(\.userId)
-        let postIds = mappedPosts.map(\.id)
 
         let group = DispatchGroup()
         let stateQueue = DispatchQueue(label: "FeedViewModel.enrich.state")
         var profilesById: [String: ProfileSummary] = [:]
-        var commentCounts: [String: Int] = [:]
         var errors: [String] = []
 
         group.enter()
@@ -115,30 +113,13 @@ final class FeedViewModel: ObservableObject {
             }
         }
 
-        group.enter()
-        CommentService.shared.fetchCommentCounts(postIds: postIds) { result in
-            stateQueue.async {
-                switch result {
-                case .success(let counts):
-                    commentCounts = counts
-                case .failure(let error):
-                    errors.append(error.localizedDescription)
-                }
-
-                group.leave()
-            }
-        }
-
         group.notify(queue: .main) {
             let feedPosts = mappedPosts.map { post -> FeedPost in
-                var enrichedPost = post
-                enrichedPost.commentsCount = commentCounts[post.id] ?? 0
-
                 let summary = profilesById[post.userId]
 
                 return FeedPost(
-                    id: enrichedPost.id,
-                    post: enrichedPost,
+                    id: post.id,
+                    post: post,
                     authorName: summary?.authorName ?? summary?.email ?? post.userId,
                     authorUsername: summary?.authorUsername ?? summary?.email ?? post.userId,
                     authorProfileImageURL: summary?.authorProfileImageURL

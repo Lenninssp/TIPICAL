@@ -28,6 +28,7 @@ struct PostAttributes: Codable {
     let imageUrl: String?
     let imagePath: String?
     let likeCount: Int?
+    let commentCount: Int?
     let likedByCurrentUser: Bool?
 }
 

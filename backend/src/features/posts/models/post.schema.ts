@@ -41,6 +41,7 @@ export const PostSchema = z
   .object({
     ...SelectPostSchema.shape,
     likeCount: z.number().default(0),
+    commentCount: z.number().default(0),
     likedByCurrentUser: z.boolean().default(false),
   })
   .openapi({
