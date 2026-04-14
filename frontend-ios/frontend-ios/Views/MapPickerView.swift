@@ -14,21 +14,21 @@ struct MapPickerView: View {
     @Binding var selectedCoordinate: CLLocationCoordinate2D?
     @Binding var selectedPosition: MapCameraPosition
     
-    @State private var tappedCoordinate: CLLocationCoordinate2D?
-    
+    @StateObject private var locationManager = LocationManager()
+
     var body: some View {
         NavigationStack {
             ZStack {
-                MapReader { proxy in
-                    Map(position: $selectedPosition) {
-                        if let tappedCoordinate {
-                            Marker("Selected place", coordinate: tappedCoordinate)
-                        }
+                Map(position: $selectedPosition) {
+                    
+                   
+                    if let userLocation = locationManager.userLocation {
+                        Marker("You", coordinate: userLocation)
                     }
-                    .onTapGesture { screenPoint in
-                        if let coordinate = proxy.convert(screenPoint, from: .local) {
-                            tappedCoordinate = coordinate
-                        }
+                    
+            
+                    if let selectedCoordinate {
+                        Marker("Selected", coordinate: selectedCoordinate)
                     }
                 }
                 .ignoresSafeArea()
@@ -41,27 +41,21 @@ struct MapPickerView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        selectedCoordinate = tappedCoordinate
+                    Button("Use my location") {
+                        if let userLocation = locationManager.userLocation {
+                            selectedCoordinate = userLocation
+                        }
                         dismiss()
                     }
-                    .disabled(tappedCoordinate == nil)
+                    .disabled(locationManager.userLocation == nil)
                 }
             }
             .onAppear {
-                if let selectedCoordinate {
-                    tappedCoordinate = selectedCoordinate
+                if let userLocation = locationManager.userLocation {
                     selectedPosition = .region(
                         MKCoordinateRegion(
-                            center: selectedCoordinate,
+                            center: userLocation,
                             span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
-                        )
-                    )
-                } else {
-                    selectedPosition = .region(
-                        MKCoordinateRegion(
-                            center: CLLocationCoordinate2D(latitude: 45.5017, longitude: -73.5673),
-                            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
                         )
                     )
                 }

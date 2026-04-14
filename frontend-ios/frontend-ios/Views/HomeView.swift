@@ -9,12 +9,17 @@ import SwiftUI
 struct HomeView: View {
     
     @EnvironmentObject var feedViewModel: FeedViewModel
+    @State private var bgColor: String = ThemeStore.shared.loadColor()
+
     
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(white: 0.12)
+                Color(hex: bgColor)
                     .ignoresSafeArea()
+                    .onAppear {
+                        bgColor = ThemeStore.shared.loadColor()
+                    }
                 
                 ScrollView {
                     HStack {

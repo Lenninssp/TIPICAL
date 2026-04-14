@@ -6,7 +6,6 @@
 //
 //
 
-
 import SwiftUI
 import PhotosUI
 import MapKit
@@ -45,7 +44,7 @@ struct CreatePostView: View {
                         VStack(alignment: .leading, spacing: 22) {
                             titleField
                             bodyField
-                            linkSection
+                            //linkSection
                             imagePreviewSection
                             mapPreviewSection
 
@@ -134,19 +133,19 @@ struct CreatePostView: View {
         }
     }
 
-    private var linkSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if showLinkField {
-                TextField("", text: $linkText, prompt: Text("Paste a link").foregroundColor(.gray))
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(white: 0.14))
-                    )
-            }
-        }
-    }
+//    private var linkSection: some View {
+//        VStack(alignment: .leading, spacing: 10) {
+//            if showLinkField {
+//                TextField("", text: $linkText, prompt: Text("Paste a link").foregroundColor(.gray))
+//                    .foregroundColor(.white)
+//                    .padding()
+//                    .background(
+//                        RoundedRectangle(cornerRadius: 16)
+//                            .fill(Color(white: 0.14))
+//                    )
+//            }
+//        }
+//    }
 
     private var imagePreviewSection: some View {
         Group {
@@ -191,13 +190,13 @@ struct CreatePostView: View {
 
     private var bottomToolbar: some View {
         HStack(spacing: 30) {
-            Button {
-                showLinkField.toggle()
-            } label: {
-                Image(systemName: "link")
-                    .font(.title2)
-                    .foregroundColor(.white)
-            }
+//            Button {
+//                showLinkField.toggle()
+//            } label: {
+//                Image(systemName: "link")
+//                    .font(.title2)
+//                    .foregroundColor(.white)
+//            }
 
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                 Image(systemName: "photo.on.rectangle")
@@ -310,3 +309,4 @@ struct CreatePostView: View {
     CreatePostView()
         .environmentObject(FeedViewModel())
 }
+

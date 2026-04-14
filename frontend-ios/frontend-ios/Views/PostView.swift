@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import Photos
 import CoreLocation
+import MapKit
 
 struct PostView: View {
     let post: Post
@@ -78,21 +79,22 @@ struct PostView: View {
 
                 Spacer()
 
-                if !isFollowing {
-                    Button {
-                        followUser()
-                    } label: {
-                        Text("Follow")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                            )
-                    }
-                    .foregroundColor(.white)
-                }
+                //follow button logic
+//                if !isFollowing {
+//                    Button {
+//                        followUser()
+//                    } label: {
+//                        Text("Follow")
+//                            .font(.subheadline.weight(.semibold))
+//                            .padding(.horizontal, 12)
+//                            .padding(.vertical, 6)
+//                            .background(
+//                                Capsule()
+//                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+//                            )
+//                    }
+//                    .foregroundColor(.white)
+//                }
 
                 Menu {
                     if post.imageData != nil || post.imageRemoteURL != nil {
@@ -160,10 +162,24 @@ struct PostView: View {
 
             postMedia
 
-            if let coordinateText {
-                Label(coordinateText, systemImage: "mappin.and.ellipse")
-                    .font(.footnote)
-                    .foregroundColor(.gray)
+            if let coordinate = post.coordinate {
+                VStack(alignment: .leading, spacing: 8) {
+                    
+                    Map(position: .constant(.region(
+                        MKCoordinateRegion(
+                            center: coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                        )
+                    ))) {
+                        Marker("Location", coordinate: coordinate)
+                    }
+                    .frame(height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    
+                    Text(String(format: "%.5f, %.5f", coordinate.latitude, coordinate.longitude))
+                        .font(.footnote)
+                        .foregroundColor(.gray)
+                }
             }
 
             HStack(spacing: 20) {

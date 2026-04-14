@@ -9,15 +9,19 @@ import SwiftUI
 
 struct LikesView: View {
     @StateObject private var authService = AuthService.shared
-
+    @State private var bgColor: String = ThemeStore.shared.loadColor()
+    
     @State private var items: [LikeActivityItem] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
 
     var body: some View {
         ZStack {
-            Color(white: 0.12)
+            Color(hex: bgColor)
                 .ignoresSafeArea()
+                .onAppear {
+                    bgColor = ThemeStore.shared.loadColor()
+                }
 
             if isLoading && items.isEmpty {
                 ProgressView()

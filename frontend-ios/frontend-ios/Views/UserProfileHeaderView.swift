@@ -26,9 +26,10 @@ struct UserProfileHeaderView: View {
                 
                 HStack(spacing: 22) {
                     profileStat(number: "\(postsCount)", label: "posts")
-                    profileStat(number: followersCount, label: "followers")
-                    profileStat(number: "\(followingCount)", label: "following")
+                    //profileStat(number: followersCount, label: "followers")
+                    //profileStat(number: "\(followingCount)", label: "following")
                 }
+                Spacer()
             }
             
             VStack(alignment: .leading, spacing: 6) {

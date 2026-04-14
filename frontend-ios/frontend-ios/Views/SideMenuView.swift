@@ -38,9 +38,26 @@ struct SideMenuView: View {
             Divider()
                 .overlay(Color.white.opacity(0.15))
             
-            menuButton(icon: "person.crop.circle", title: "Edit Profile")
+           // menuButton(icon: "person.crop.circle", title: "Edit Profile")
            // menuButton(icon: "bookmark", title: "Saved Posts")
-            menuButton(icon: "gearshape", title: "Settings")
+            //menuButton(icon: "gearshape", title: "Settings")
+            NavigationLink {
+                ThemePickerView()
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "paintpalette")
+                        .frame(width: 20)
+                        .foregroundColor(.white)
+
+                    Text("Change Background")
+                        .foregroundColor(.white)
+                        .font(.body)
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 16)
+            }
             menuButton(icon: "questionmark.circle", title: "Help")
             //menuButton(icon: "rectangle.portrait.and.arrow.right", title: "Log Out")
             logoutButton()

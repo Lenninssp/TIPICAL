@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreLocation
+import MapKit
 
 struct PostDetailedContentView: View {
     let post: Post
@@ -80,11 +81,25 @@ struct PostDetailedContentView: View {
             }
 
             postMedia
-
-            if let coordinateText {
-                Label(coordinateText, systemImage: "mappin.and.ellipse")
-                    .font(.footnote)
-                    .foregroundColor(.gray)
+            
+            if let coordinate = post.coordinate {
+                VStack(alignment: .leading, spacing: 8) {
+                    
+                    Map(position: .constant(.region(
+                        MKCoordinateRegion(
+                            center: coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                        )
+                    ))) {
+                        Marker("Location", coordinate: coordinate)
+                    }
+                    .frame(height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    
+                    Text(String(format: "%.5f, %.5f", coordinate.latitude, coordinate.longitude))
+                        .font(.footnote)
+                        .foregroundColor(.gray)
+                }
             }
 
             HStack(spacing: 20) {

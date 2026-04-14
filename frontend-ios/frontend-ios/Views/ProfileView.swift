@@ -10,6 +10,7 @@ struct ProfileView: View {
     @EnvironmentObject var feedViewModel: FeedViewModel
     @StateObject private var authService = AuthService.shared
     @State private var showSideMenu = false
+    @State private var bgColor: String = ThemeStore.shared.loadColor()
 
     let viewedUserId: String?
     let viewedAuthorName: String?
@@ -67,8 +68,11 @@ struct ProfileView: View {
     var body: some View {
         ZStack(alignment: .trailing) {
             ZStack {
-                Color(white: 0.12)
+                Color(hex: bgColor)
                     .ignoresSafeArea()
+                    .onAppear {
+                        bgColor = ThemeStore.shared.loadColor()
+                    }
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
