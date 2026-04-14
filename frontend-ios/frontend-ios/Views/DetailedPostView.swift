@@ -13,7 +13,8 @@ struct DetailedPostView: View {
     let authorProfileImageURL: String?
     var onLikeStateChanged: ((Bool, Int) -> Void)? = nil
     var onCommentCountChanged: ((Int) -> Void)? = nil
-
+    
+    @State private var bgColor: String = ThemeStore.shared.loadColor()
     @State var isFollowing: Bool
     @State var isLiked: Bool
     @State var likesCount: Int
@@ -28,8 +29,11 @@ struct DetailedPostView: View {
 
     var body: some View {
         ZStack {
-            Color(white: 0.12)
+            Color(hex: bgColor)
                 .ignoresSafeArea()
+                .onAppear {
+                    bgColor = ThemeStore.shared.loadColor()
+                }
 
             VStack(spacing: 0) {
                 HStack {
@@ -54,7 +58,7 @@ struct DetailedPostView: View {
                             authorName: authorName,
                             authorUsername: authorUsername,
                             authorProfileImageURL: authorProfileImageURL,
-                            isFollowing: $isFollowing,
+                           // isFollowing: $isFollowing,
                             isLiked: $isLiked,
                             likesCount: $likesCount,
                             commentsCount: $commentsCount

@@ -26,7 +26,7 @@ struct RegisterView: View {
                     .padding(.vertical)
                 
                 VStack(alignment: .leading, spacing: 4) {
-                        //Email
+                        
                     Text("Email")
                         .fontWeight(.bold)
                         .foregroundColor(.primary)

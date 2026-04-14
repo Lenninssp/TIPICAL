@@ -15,7 +15,6 @@ final class ThemeStore {
 
     private let keyId = "main"
 
-    // MARK: LOAD
     func loadColor() -> String {
         let request = AppTheme.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", keyId)
@@ -27,7 +26,7 @@ final class ThemeStore {
         return "#1C1C1E"
     }
 
-    // MARK: SAVE
+ 
     func saveColor(_ hex: String) {
         let request = AppTheme.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", keyId)

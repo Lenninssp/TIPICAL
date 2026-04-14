@@ -15,7 +15,7 @@ struct PostDetailedContentView: View {
     let authorUsername: String
     let authorProfileImageURL: String?
 
-    @Binding var isFollowing: Bool
+   // @Binding var isFollowing: Bool
     @Binding var isLiked: Bool
     @Binding var likesCount: Int
     @Binding var commentsCount: Int
@@ -50,22 +50,22 @@ struct PostDetailedContentView: View {
                 .buttonStyle(.plain)
 
                 Spacer()
-
-                if !isFollowing {
-                    Button {
-                        isFollowing = true
-                    } label: {
-                        Text("Follow")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                            )
-                    }
-                    .foregroundColor(.white)
-                }
+//
+//                if !isFollowing {
+//                    Button {
+//                        isFollowing = true
+//                    } label: {
+//                        Text("Follow")
+//                            .font(.subheadline.weight(.semibold))
+//                            .padding(.horizontal, 12)
+//                            .padding(.vertical, 6)
+//                            .background(
+//                                Capsule()
+//                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+//                            )
+//                    }
+//                    .foregroundColor(.white)
+//                }
             }
 
             if !post.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -273,7 +273,7 @@ struct PostDetailedContentView: View {
                 authorName: "Sofia Guerra",
                 authorUsername: "sofiaguerra",
                 authorProfileImageURL: nil,
-                isFollowing: $isFollowing,
+               // isFollowing: $isFollowing,
                 isLiked: $isLiked,
                 likesCount: $likesCount,
                 commentsCount: $commentsCount

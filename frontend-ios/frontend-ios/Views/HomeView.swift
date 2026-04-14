@@ -28,7 +28,7 @@ struct HomeView: View {
                             .scaledToFit()
                             .frame(width: 20, height: 20)
                         
-                        Text("TYPICAL")
+                        Text("TIPICAL")
                             .bold()
                             .font(.title2)
                             .foregroundColor(.white)
